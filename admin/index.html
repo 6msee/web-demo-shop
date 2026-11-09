@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>หลังบ้าน · FIZZ &amp; CO.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css?v=20261109.4">
+<script src="../vendor/supabase.js?v=20261109.4"></script>
+</head>
+<body>
+
+<!-- ===== Auth ===== -->
+<section class="auth" id="auth" hidden>
+  <div class="auth__art" aria-hidden="true">
+    <img src="../img/products/tee-lime.webp" alt="" class="auth__can auth__can--1">
+    <img src="../img/can-honey-lemon.webp" alt="" class="auth__can auth__can--2">
+    <img src="../img/products/earbuds.webp" alt="" class="auth__can auth__can--3">
+    <div class="auth__brand">FIZZ<b>&amp;</b>CO.<small>Content Studio</small></div>
+  </div>
+  <div class="auth__panel">
+    <form class="auth__form" id="authForm" novalidate>
+      <h1 id="authTitle">เข้าสู่ระบบหลังบ้าน</h1>
+      <p class="muted" id="authSub">จัดการสินค้า คำสั่งซื้อ และเนื้อหาหน้าเว็บทั้งหมด</p>
+      <div class="field" id="nameField" hidden><label for="aName">ชื่อที่แสดง</label><input id="aName" autocomplete="name"></div>
+      <div class="field"><label for="aEmail">อีเมล</label><input id="aEmail" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="aPass">รหัสผ่าน</label><input id="aPass" type="password" autocomplete="current-password" minlength="6" required></div>
+      <p class="alert" id="authMsg" role="alert" hidden></p>
+      <button class="btn btn--primary btn--lg" id="authBtn" type="submit">เข้าสู่ระบบ</button>
+      <button class="link" id="authSwitch" type="button">ยังไม่มีบัญชี? สมัครผู้ดูแล</button>
+      <p class="tiny muted">บัญชีแรกที่สมัครจะเป็น <b>เจ้าของร้าน</b> อัตโนมัติ · บัญชีถัดไปต้องรอเจ้าของอนุมัติ</p>
+    </form>
+  </div>
+</section>
+
+<!-- ===== Pending ===== -->
+<section class="pending" id="pending" hidden>
+  <div class="card pending__card">
+    <h1>รอการอนุมัติ</h1>
+    <p class="muted">บัญชี <b id="pendingEmail"></b> ยังไม่ได้รับสิทธิ์ผู้ดูแล กรุณาแจ้งเจ้าของร้านให้อนุมัติที่เมนู “ผู้ดูแลระบบ”</p>
+    <button class="btn" data-logout>ออกจากระบบ</button>
+  </div>
+</section>
+
+<!-- ===== App ===== -->
+<div class="app" id="app" hidden>
+  <aside class="side" id="side">
+    <div class="side__brand">FIZZ<b>&amp;</b>CO.<small>Content Studio</small></div>
+    <nav class="side__nav" id="nav" aria-label="เมนูหลังบ้าน">
+      <a href="#/dashboard" data-route="dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/></svg>แดชบอร์ด</a>
+      <a href="#/orders" data-route="orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8zM9 8V6a3 3 0 0 1 6 0v2"/></svg>คำสั่งซื้อ<span class="pill" id="pendingBadge" hidden></span></a>
+      <a href="#/products" data-route="products"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="3"/><path d="M7 7h10M7 17h10"/></svg>สินค้า &amp; สต็อก</a>
+      <a href="#/categories" data-route="categories"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>หมวดหมู่</a>
+      <a href="#/content" data-route="content"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10M4 20h7"/></svg>เนื้อหาหน้าเว็บ</a>
+      <a href="#/media" data-route="media"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>คลังรูปภาพ</a>
+      <a href="#/settings" data-route="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>ตั้งค่าร้าน</a>
+      <a href="#/admins" data-route="admins" data-owner hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21c1-4 4-6 7-6s6 2 7 6M17 11l2 2 4-4"/></svg>ผู้ดูแลระบบ</a>
+    </nav>
+    <div class="side__foot">
+      <a class="side__store" href="../" target="_blank" rel="noopener">ดูหน้าร้าน ↗</a>
+      <div class="me"><span class="me__avatar" id="meAvatar"></span><span class="me__info"><b id="meName"></b><small id="meRole"></small></span>
+        <button class="iconbtn" data-logout aria-label="ออกจากระบบ" title="ออกจากระบบ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></button>
+      </div>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <button class="iconbtn top__menu" id="menuBtn" aria-label="เปิดเมนู"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <div><p class="top__crumb" id="crumb"></p><h1 class="top__title" id="pageTitle"></h1></div>
+      <div class="top__actions" id="pageActions"></div>
+    </header>
+    <main class="view" id="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<!-- ===== Shared overlays ===== -->
+<div class="sheet" id="sheet" aria-hidden="true">
+  <button class="sheet__scrim" data-sheet-close aria-label="ปิด"></button>
+  <section class="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <header class="sheet__head"><h2 id="sheetTitle"></h2><button class="iconbtn" data-sheet-close aria-label="ปิด"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+    <div class="sheet__body" id="sheetBody"></div>
+    <footer class="sheet__foot" id="sheetFoot"></footer>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="admin.js?v=20261109.4"></script>
+</body>
+</html>

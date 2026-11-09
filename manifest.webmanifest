@@ -1,0 +1,22 @@
+{
+  "name": "FIZZ & CO. — ของมันต้องมี",
+  "short_name": "FIZZ & CO.",
+  "description": "ร้านออนไลน์รวมเครื่องดื่ม ขนม แฟชั่น แก็ดเจ็ต บิวตี้ และไลฟ์สไตล์ สั่งง่าย จ่ายผ่าน LINE",
+  "lang": "th",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E0E10",
+  "theme_color": "#0E0E10",
+  "categories": ["shopping", "lifestyle"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "ดูของขายดี", "url": "./#best", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "สินค้าทั้งหมด", "url": "./#shop", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

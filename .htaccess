@@ -1,0 +1,6 @@
+# ให้เบราว์เซอร์ตรวจไฟล์ใหม่ทุกครั้ง (ป้องกันเห็นหน้าเว็บเวอร์ชันเก่าค้าง)
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
