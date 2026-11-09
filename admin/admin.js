@@ -1,5 +1,5 @@
 // MARBO98 — Content Studio (หลังบ้าน CMS) · Supabase Auth + Database + Storage + Realtime
-import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261109.16';
+import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261109.20';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s, r = document) => r.querySelector(s);
@@ -48,6 +48,8 @@ function closeSheet() {
   if (sheetCleanup) { sheetCleanup(); sheetCleanup = null; }
 }
 $$('[data-sheet-close]').forEach((b) => b.addEventListener('click', closeSheet));
+// แสดง/ซ่อนรหัสผ่านในหน้าเข้าสู่ระบบ
+on('#pwToggle', 'click', (e) => { const b = e.currentTarget, i = $('#aPass'), show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.setAttribute('aria-pressed', String(show)); b.setAttribute('aria-label', show ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'); i.focus(); });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('#sheet').classList.contains('open')) closeSheet(); });
 
 function busy(btn, on, text = 'กำลังบันทึก…') {
@@ -414,7 +416,7 @@ async function dashboard() {
   on('#xlsxBtn', 'click', async (e) => {
     const btn = e.currentTarget; busy(btn, true, 'กำลังสร้างไฟล์…');
     try {
-      await loadScript('../vendor/xlsx.mini.min.js?v=20261109.16');
+      await loadScript('../vendor/xlsx.mini.min.js?v=20261109.20');
       const X = window.XLSX, wb = X.utils.book_new();
       const sheet = (name, rows, widths) => { const ws = X.utils.aoa_to_sheet(rows); if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); X.utils.book_append_sheet(wb, ws, name); };
       const n2 = (v) => Math.round(Number(v) * 100) / 100;

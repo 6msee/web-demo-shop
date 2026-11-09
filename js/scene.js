@@ -32,8 +32,9 @@ function drawProduct(img, it) {
 }
 
 export async function createScene(canvas, items, { onProgress, onFocus, onPick } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const lite = matchMedia('(max-width: 900px), (pointer: coarse)').matches;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !lite, alpha: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lite ? 1.5 : 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
@@ -103,6 +104,15 @@ export async function createScene(canvas, items, { onProgress, onFocus, onPick }
 
   // ---------- render ----------
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const still = reduce || lite;   // มือถือ: ไม่ลอยขึ้นลง (ภาพนิ่ง = ไม่ต้องวาดซ้ำ)
+  let lastSig = '';
+  // ปรับความละเอียดอัตโนมัติ: เครื่องไหนวาดไม่ทัน (เฟรมช้ากว่า ~22ms) ลดความละเอียดลงทีละขั้น
+  let pr = renderer.getPixelRatio(), slow = 0, frames = 0;
+  const adapt = (dt) => {
+    if (pr <= 1) return; frames++;
+    if (dt > 0.022) slow++;
+    if (frames >= 40) { if (slow > 14) { pr = Math.max(1, pr - 0.25); renderer.setPixelRatio(pr); w0 = 0; } frames = 0; slow = 0; }
+  };
   const clock = new THREE.Clock();
   let w0 = 0, h0 = 0, rot = 0, focus = -1, wide = true;
   const tmp = new THREE.Vector3(), ctr = new THREE.Vector3();
@@ -116,6 +126,7 @@ export async function createScene(canvas, items, { onProgress, onFocus, onPick }
   }
 
   function render(p, dt = 1 / 60) {
+    adapt(dt);
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
     if (w !== w0 || h !== h0) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); w0 = w; h0 = h; wide = w / h > 1.1; }
@@ -127,7 +138,7 @@ export async function createScene(canvas, items, { onProgress, onFocus, onPick }
     camera.position.set(ptr.sx * 0.35, lerp(1.6, 0.5, s) - ptr.sy * 0.2, lerp(wide ? 15 : 17, wide ? 11.2 : 13.5, s));
     camera.lookAt(0, 0, 0); camera.updateMatrixWorld();
 
-    const target = stepped(p) * STEP + drag + (reduce ? 0 : Math.sin(t * 0.35) * 0.025 * (1 - s));
+    const target = stepped(p) * STEP + drag + (still ? 0 : Math.sin(t * 0.35) * 0.025 * (1 - s));
     rot = lerp(rot, target, k);
 
     ring.position.set(wide ? lerp(2.5, 0, s) : 0, wide ? lerp(-0.1, 0.42, s) : lerp(2.35, 0.75, s), wide ? lerp(-1.2, 0, s) : -1);
@@ -144,10 +155,15 @@ export async function createScene(canvas, items, { onProgress, onFocus, onPick }
       if (facing > best) { best = facing; bi = i; }
       u.hover = lerp(u.hover, hovered === n.mesh ? 1 : 0, k);
       n.mesh.position.z = u.hover * 0.18;
-      n.mesh.position.y = u.hover * 0.1 + (reduce ? 0 : Math.sin(t * 1.1 + i * 1.7) * 0.035);
+      n.mesh.position.y = u.hover * 0.1 + (still ? 0 : Math.sin(t * 1.1 + i * 1.7) * 0.035);
       n.mesh.material.opacity = ease((facing + 0.25) / 0.75);
     });
     if (bi !== focus) { focus = bi; onFocus && onFocus(loaded[bi].id, bi, N); }
+    // มือถือ: ภาพไม่เปลี่ยน = ไม่ต้องวาดซ้ำ (ประหยัดแบตและลดกระตุก)
+    if (lite) {
+      const sig = [rot.toFixed(4), p.toFixed(4), w, h, nodes.map((n) => n.holder.userData.hover.toFixed(3)).join(',')].join('|');
+      if (sig === lastSig) return; lastSig = sig;
+    }
     renderer.render(scene, camera);
   }
   return { render, count: N, focusId: () => (focus >= 0 ? loaded[focus].id : null), dispose: () => renderer.dispose() };

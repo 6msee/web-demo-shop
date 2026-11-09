@@ -997,3 +997,35 @@ html:not([data-theme="light"]) .card:hover .card__media,html:not([data-theme="li
   background:radial-gradient(50% 60% at 50% 70%,rgba(0,0,0,.6),rgba(0,0,0,0));pointer-events:none}
 .has-cover .spot__name{text-shadow:0 2px 24px rgba(0,0,0,.35)}
 @media (max-width:760px){.spot__name{font-size:26px}.spot__row{gap:16px}}
+
+/* =====================================================================
+   มือถือ/แท็บเล็ต (โหมดเบา): เข้าจอแบบเลื่อนขึ้น+จางเข้า อย่างเดียว ไม่มี 3D ต่อเนื่อง
+   ===================================================================== */
+.s3d-lite main{perspective:none}
+.s3d-lite .cats,.s3d-lite .bento,.s3d-lite .rail,.s3d-lite .grid,.s3d-lite .promo,.s3d-lite .block__head,.s3d-lite .foot,.s3d-lite .foot__cols{perspective:none}
+.s3d-lite .s3d-head,.s3d-lite .s3d-tilt,.s3d-lite .s3d-rise,.s3d-lite .s3d-rise:nth-child(3n+1),.s3d-lite .s3d-swing,.s3d-lite .s3d-promo{
+  rotate:none;scale:none;translate:0 calc(var(--k) * 34px);opacity:calc(var(--e) * 1.2 - .1)}
+.s3d-lite .s3d-swing{translate:calc(var(--k) * 40px) 0}
+.s3d-lite .s3d-head .h2::before,.s3d-lite .s3d-promo .promo__title{translate:none}
+.s3d-lite .s3d .card__media img,.s3d-lite .s3d .cat__img img{translate:none}
+.s3d-lite .s3d-foot .ch{rotate:none;translate:0 calc((1 - var(--l)) * .25em)}
+.s3d-lite .bigword{display:none}
+.s3d-lite body::before{display:none}
+/* เบลอพื้นหลังกินแรงมากบนมือถือ → ใช้พื้นทึบแทน */
+@media (max-width:900px),(pointer:coarse){
+  .tabbar,.nav,.filters{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  .tabbar{background:#0B0B0C}
+  [data-theme="light"] .tabbar{background:#fff}
+  .spot{will-change:opacity}
+}
+/* ความสูงหน้าปกคงที่ ไม่กระโดดตอนแถบ URL ของมือถือซ่อน/แสดง */
+@supports (height:100svh){@media (max-width:1100px){.hero__stage{height:calc(100svh - var(--tabh,0px))}}}
+/* โหมดเบา: แอนิเมชันด้วย transition ครั้งเดียวตอนเข้าจอ (ทับค่าด้านบน) */
+.s3d-lite .s3d{--e:1;--k:0}
+.s3d-lite .s3d:not(.s3d-foot){opacity:0;translate:0 28px;rotate:none;scale:none;transition:opacity .7s var(--ease) var(--dl,0ms),translate .8s var(--ease) var(--dl,0ms)}
+.s3d-lite .s3d-swing:not(.s3d-in){translate:36px 0}
+.s3d-lite .s3d.s3d-in{opacity:1;translate:none}
+.s3d-lite .s3d-foot .ch{opacity:0;rotate:none;translate:0 .3em;transition:opacity .6s var(--ease) calc(var(--i) * 40ms),translate .7s var(--ease) calc(var(--i) * 40ms)}
+.s3d-lite .s3d-foot.s3d-in .ch{opacity:1;translate:none}
+.s3d-lite .s3d-head::after{transform:scaleX(0);transition:transform .9s var(--ease) .15s}
+.s3d-lite .s3d-head.s3d-in::after{transform:scaleX(1)}

@@ -8,26 +8,33 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin.css?v=20261109.16">
-<script src="../vendor/supabase.js?v=20261109.16"></script>
+<link rel="stylesheet" href="admin.css?v=20261109.20">
+<script src="../vendor/supabase.js?v=20261109.20"></script>
 </head>
 <body>
 
 <!-- ===== Auth ===== -->
 <section class="auth" id="auth" hidden>
-  <div class="auth__art" aria-hidden="true">
-    <img src="../img/products/tee-lime.webp" alt="" class="auth__can auth__can--1">
-    <img src="../img/can-honey-lemon.webp" alt="" class="auth__can auth__can--2">
-    <img src="../img/products/earbuds.webp" alt="" class="auth__can auth__can--3">
-    <div class="auth__brand">MARBO<b>98</b><small>Content Studio</small></div>
+  <div class="auth__art">
+    <div class="auth__rings" aria-hidden="true"><i></i><i></i><i></i><span class="auth__sweep"></span></div>
+    <div class="auth__brand"><span class="auth__mark">MARBO<b>98</b></span><small>Content Studio</small></div>
+    <ul class="auth__feats">
+      <li><b>01</b><span>คำสั่งซื้อเข้าแบบเรียลไทม์ พร้อมแจ้งเตือน</span></li>
+      <li><b>02</b><span>แก้หน้าเว็บ รูปหน้าปก และสินค้าได้เองทั้งหมด</span></li>
+      <li><b>03</b><span>รายงานยอดขาย สต็อก และส่งออก Excel</span></li>
+    </ul>
+    <p class="auth__copy">© 2026 · ระบบหลังบ้านสำหรับผู้ดูแลร้าน</p>
   </div>
   <div class="auth__panel">
     <form class="auth__form" id="authForm" novalidate>
+      <p class="auth__eyebrow">WELCOME BACK</p>
       <h1 id="authTitle">เข้าสู่ระบบหลังบ้าน</h1>
       <p class="muted" id="authSub">จัดการสินค้า คำสั่งซื้อ และเนื้อหาหน้าเว็บทั้งหมด</p>
-      <div class="field" id="nameField" hidden><label for="aName">ชื่อที่แสดง</label><input id="aName" autocomplete="name"></div>
-      <div class="field"><label for="aEmail">อีเมล</label><input id="aEmail" type="email" autocomplete="email" required></div>
-      <div class="field"><label for="aPass">รหัสผ่าน</label><input id="aPass" type="password" autocomplete="current-password" minlength="6" required></div>
+      <div class="field" id="nameField" hidden><label for="aName">ชื่อที่แสดง</label><input id="aName" autocomplete="name" placeholder="ชื่อของคุณ"></div>
+      <div class="field"><label for="aEmail">อีเมล</label><input id="aEmail" type="email" autocomplete="email" placeholder="name@example.com" required></div>
+      <div class="field"><label for="aPass">รหัสผ่าน</label>
+        <div class="pw"><input id="aPass" type="password" autocomplete="current-password" minlength="6" placeholder="อย่างน้อย 6 ตัวอักษร" required>
+          <button type="button" class="pw__toggle" id="pwToggle" aria-label="แสดงรหัสผ่าน" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
       <p class="alert" id="authMsg" role="alert" hidden></p>
       <button class="btn btn--primary btn--lg" id="authBtn" type="submit">เข้าสู่ระบบ</button>
       <button class="link" id="authSwitch" type="button">ยังไม่มีบัญชี? สมัครผู้ดูแล</button>
@@ -91,6 +98,6 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script type="module" src="admin.js?v=20261109.16"></script>
+<script type="module" src="admin.js?v=20261109.20"></script>
 </body>
 </html>
