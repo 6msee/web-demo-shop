@@ -1,14 +1,14 @@
 {
-  "name": "FIZZ & CO. — ของมันต้องมี",
-  "short_name": "FIZZ & CO.",
+  "name": "MARBO98 — ของมันต้องมี",
+  "short_name": "MARBO98",
   "description": "ร้านออนไลน์รวมเครื่องดื่ม ขนม แฟชั่น แก็ดเจ็ต บิวตี้ และไลฟ์สไตล์ สั่งง่าย จ่ายผ่าน LINE",
   "lang": "th",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0E0E10",
-  "theme_color": "#0E0E10",
+  "background_color": "#0B0B0C",
+  "theme_color": "#0B0B0C",
   "categories": ["shopping", "lifestyle"],
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },

@@ -2,27 +2,30 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FIZZ &amp; CO. — ของมันต้องมี รวมไว้ในที่เดียว</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MARBO98 — ของมันต้องมี รวมไว้ในที่เดียว</title>
 <meta name="description" content="ร้านออนไลน์รวมเครื่องดื่ม ขนม แฟชั่น แก็ดเจ็ต บิวตี้ และไลฟ์สไตล์ สำหรับวัยรุ่น สั่งง่าย จ่ายผ่าน LINE">
-<meta name="theme-color" content="#0E0E10">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MARBO98">
+<meta property="og:image" content="icons/icon-512.png">
+<meta name="theme-color" content="#0B0B0C">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/favicon-64.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="FIZZ & CO.">
+<meta name="apple-mobile-web-app-title" content="MARBO98">
 <script>
 /* ตั้งโหมดสี (มืด/สว่าง) ก่อนวาดหน้า กันจอกะพริบ */
 (function(){try{var t=localStorage.getItem('fizz-theme')||'dark';document.documentElement.dataset.theme=t;
-document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'#0E0E10';}catch(e){document.documentElement.dataset.theme='dark';}})();
+document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'#0B0B0C';}catch(e){document.documentElement.dataset.theme='dark';}})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261109.4">
-<script src="vendor/supabase.js?v=20261109.4"></script>
+<link rel="stylesheet" href="css/style.css?v=20261109.15">
+<script src="vendor/supabase.js?v=20261109.15"></script>
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
 </script>
@@ -30,14 +33,14 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
 <body>
 
 <div class="loader" id="loader" aria-hidden="true">
-  <div class="loader__word"><span>FIZZ</span><b>&amp;</b><span>CO.</span></div>
+  <div class="loader__word"><span>MARBO</span><b>98</b></div>
   <div class="loader__bar"><i id="loadBar"></i></div>
   <div class="loader__num"><span id="loadPct">0</span>%</div>
 </div>
 <div class="cursor" id="cursor" aria-hidden="true"><span class="cursor__dot"></span><span class="cursor__ring"></span></div>
 
 <header class="nav" id="nav">
-  <a href="#top" class="nav__logo" data-magnetic><span data-cms="settings.shop_name">FIZZ &amp; CO.</span></a>
+  <a href="#top" class="nav__logo" data-magnetic><span data-cms="settings.shop_name">MARBO98</span></a>
   <nav class="nav__links" aria-label="ส่วนต่างๆ ของหน้า">
     <a href="#categories">หมวดหมู่</a><a href="#featured">แนะนำ</a><a href="#best">ขายดี</a><a href="#new">มาใหม่</a><a href="#shop">ร้านค้า</a>
   </nav>
@@ -63,6 +66,7 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   <!-- HERO · 3D orbit of featured products -->
   <section class="hero" id="top">
     <div class="hero__stage" id="heroStage">
+      <div class="hero__shade" aria-hidden="true"></div>
             <canvas id="gl" aria-label="สินค้าแนะนำแบบสามมิติ คลิกเพื่อดูรายละเอียด"></canvas>
       <div class="hero__copy">
         <p class="ribbon" data-cms="settings.announcement" hidden></p>
@@ -75,12 +79,15 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
         </div>
       </div>
       <div class="spot" id="spot" hidden>
-        <span class="spot__cat" id="spotCat"></span>
+        <span class="spot__meta"><span class="spot__cat" id="spotCat"></span><span class="spot__no" id="spotNo"></span></span>
         <b class="spot__name" id="spotName"></b>
-        <span class="spot__price" id="spotPrice"></span>
-        <button class="btn btn--sm btn--ink" id="spotBtn">ดูสินค้า <span class="btn__arrow">→</span></button>
+        <span class="spot__row"><span class="spot__price" id="spotPrice"></span><button class="spot__btn" id="spotBtn">ดูสินค้า <span aria-hidden="true">→</span></button></span>
       </div>
-      <div class="hero__hint" aria-hidden="true">เลื่อนลงเพื่อหมุน · คลิกสินค้าเพื่อดู<span></span></div>
+      <div class="hero__meta" aria-hidden="true">
+        <span class="hero__count"><b id="heroNo">01</b> / <span id="heroOf">08</span></span>
+        <span class="hero__track"><i id="heroBar"></i></span>
+        <span class="hero__hint">เลื่อนลงเพื่อดูทีละชิ้น · ลากหรือคลิกสินค้า</span>
+      </div>
     </div>
   </section>
 
@@ -139,14 +146,14 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
 </main>
 
 <footer class="foot">
-  <div class="foot__big" aria-hidden="true" data-cms="settings.shop_name">FIZZ &amp; CO.</div>
+  <div class="foot__big" aria-hidden="true" data-cms="settings.shop_name">MARBO98</div>
   <div class="foot__cols">
     <div><b>หมวดหมู่</b><ul id="footCats"></ul></div>
     <div><b>ช่วยเหลือ</b><ul><li>สั่งซื้อและชำระผ่าน LINE</li><li>ส่งฟรีเมื่อครบยอดที่กำหนด</li><li>เปลี่ยนสินค้าได้ภายใน 7 วัน</li></ul></div>
     <div><b>ติดต่อ</b><ul><li>LINE OA: <span id="lineIdText">[ยังไม่ตั้งค่า]</span></li>
       <li><button type="button" id="installFoot" class="foot__install">ติดตั้งเป็นแอปบนมือถือ →</button></li></ul></div>
   </div>
-  <div class="foot__row"><span>© 2026 <span data-cms="settings.shop_name">FIZZ &amp; CO.</span></span><span data-cms="settings.footer_note"></span></div>
+  <div class="foot__row"><span>© 2026 <span data-cms="settings.shop_name">MARBO98</span></span><span data-cms="settings.footer_note"></span></div>
 </footer>
 
 <!-- Product detail -->
@@ -239,7 +246,7 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   <div class="modal__box ios" role="dialog" aria-modal="true" aria-labelledby="iosTitle">
     <div class="modal__col">
       <img src="icons/icon-192.png" alt="" width="72" height="72" style="border-radius:16px">
-      <h2 id="iosTitle">ติดตั้ง FIZZ &amp; CO. เป็นแอป</h2>
+      <h2 id="iosTitle">ติดตั้ง MARBO98 เป็นแอป</h2>
       <ol class="steps"><li>เปิดหน้านี้ด้วย <b>Safari</b></li><li>กดปุ่ม <b>แชร์</b> (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ด้านล่าง</li><li>เลือก <b>“เพิ่มไปยังหน้าจอโฮม”</b> แล้วกด <b>เพิ่ม</b></li></ol>
       <p class="muted small">บน Android ใช้ Chrome แล้วกดปุ่ม “ติดตั้งแอป” ได้เลย</p>
       <button class="btn btn--ink" data-close-ios>เข้าใจแล้ว</button>
@@ -247,7 +254,16 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   </div>
 </div>
 
+
+<!-- แถบเมนูด้านล่างแบบแอป (มือถือ / ไอแพด) -->
+<nav class="tabbar" id="tabbar" aria-label="เมนูหลัก">
+  <a href="#top" data-tab="top"><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg><span>หน้าแรก</span></a>
+  <a href="#categories" data-tab="categories"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg><span>หมวดหมู่</span></a>
+  <a href="#shop" data-tab="shop"><svg viewBox="0 0 24 24"><path d="M4 9h16l-1 10.2a1.5 1.5 0 0 1-1.5 1.3h-11A1.5 1.5 0 0 1 5 19.2z"/><path d="M4 9l2-4.5h12L20 9"/></svg><span>ร้านค้า</span></a>
+  <button type="button" data-tab="search" id="tabSearch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span>ค้นหา</span></button>
+  <button type="button" data-tab="cart" id="tabCart"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>ตะกร้า</span><b class="tabbar__count" id="tabCount">0</b></button>
+</nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="js/main.js?v=20261109.4"></script>
+<script type="module" src="js/main.js?v=20261109.15"></script>
 </body>
 </html>

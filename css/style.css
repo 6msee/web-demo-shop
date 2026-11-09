@@ -1,5 +1,5 @@
 /* =====================================================================
-   FIZZ & CO. — White editorial store
+   MARBO98 — White editorial store
    พื้นขาว ตัวอักษร Kanit · ดำเป็นสีหลัก · ส้มเฉพาะจุดเล็กๆ
    ===================================================================== */
 :root{
@@ -373,7 +373,7 @@ main{counter-reset:sec}
    ===================================================================== */
 :root{
   --bg:#0E0E10; --soft:#18181B; --soft2:#202024; --ink:#F2F1EE; --ink2:#C9C8C4; --muted:#85858B; --line:#26262B;
-  --accent:#D4FF3A; --on-accent:#0E0E10;
+  --accent:#D6B46C; --on-accent:#0E0E10;
   --cream:#121214; --peach:#141416; --sand:#121214;
 }
 body{background:var(--bg);color:var(--ink)}
@@ -407,7 +407,7 @@ body{background:var(--bg);color:var(--ink)}
 
 /* หน้าปก: ตัวหนังสือโปร่งขนาดใหญ่ด้านหลังเป็นลายแบบสตรีท */
 .hero__stage{background:var(--bg)}
-.hero__stage::before{content:"FIZZ & CO.";position:absolute;left:-2vw;bottom:-4vw;font:500 26vw/1 var(--font);letter-spacing:-.06em;color:transparent;-webkit-text-stroke:1px #222226;white-space:nowrap;pointer-events:none}
+.hero__stage::before{content:"MARBO98";position:absolute;left:-2vw;bottom:-4vw;font:500 26vw/1 var(--font);letter-spacing:-.06em;color:transparent;-webkit-text-stroke:1px #222226;white-space:nowrap;pointer-events:none}
 .hero__lead{color:var(--ink2)}
 .hero__title em{font-style:normal;color:var(--accent)}
 .spot{border-top-color:var(--ink)}
@@ -488,7 +488,7 @@ body{background:var(--bg);color:var(--ink)}
 #pdAdd{background:var(--accent);color:var(--on-accent)}
 .drawer__head,.drawer__foot,.line{border-color:var(--line)}
 .line__img{background:var(--bg)}
-.hint{background:rgba(212,255,58,.08);color:var(--accent);border:1px solid rgba(212,255,58,.25)}
+.hint{background:rgba(214,180,108,.08);color:var(--accent);border:1px solid rgba(214,180,108,.25)}
 .sum--disc{color:var(--accent)}
 .form label{color:var(--ink2)}
 .form input,.form textarea{background:var(--bg);border-color:#333338;color:var(--ink)}
@@ -520,14 +520,14 @@ body{background:var(--bg);color:var(--ink)}
 .chip[aria-selected="true"] i{background:#0E0E10}
 
 /* เลขกำกับแต่ละส่วนคนละสี */
-#categories .h2::before{color:#D4FF3A}
+#categories .h2::before{color:#D6B46C}
 #featured .h2::before{color:#FF3DA5}
 #best .h2::before{color:#22D3EE}
 #new .h2::before{color:#FF8A1F}
 #shop .h2::before{color:#3D7BFF}
 
 /* อันดับขายดีไล่สี */
-.rank .card:nth-child(1) .rank__no{color:#D4FF3A}
+.rank .card:nth-child(1) .rank__no{color:#D6B46C}
 .rank .card:nth-child(2) .rank__no{color:#22D3EE}
 .rank .card:nth-child(3) .rank__no{color:#FF3DA5}
 .rank .card:nth-child(4) .rank__no{color:#FF8A1F}
@@ -541,22 +541,22 @@ body{background:var(--bg);color:var(--ink)}
 
 /* แถบวิ่ง: จุดหลากสี */
 .ticker__track span span:nth-child(4n+1)::after{background:#0E0E10}
-.ticker{background:linear-gradient(90deg,#D4FF3A,#D4FF3A)}
+.ticker{background:linear-gradient(90deg,#D6B46C,#D6B46C)}
 .hero__stage::before{-webkit-text-stroke:1px #26262C}
 .ribbon::before{background:#FF3DA5}
-.foot__cols b{color:#D4FF3A}
+.foot__cols b{color:#D6B46C}
 
 /* =====================================================================
    NEON+ : เติมเขียวนีออนให้เด่นขึ้น (โหมดมืด)
    ===================================================================== */
 .foot__big{color:var(--accent)!important;-webkit-text-stroke:0!important}
-.nav.scrolled{border-bottom-color:rgba(212,255,58,.35)}
+.nav.scrolled{border-bottom-color:rgba(214,180,108,.35)}
 .nav__links a:hover{color:var(--accent)}
 .nav__logo{color:var(--ink)}
 .nav__logo::first-letter{color:var(--accent)}
 .block__head{position:relative}
 .block__head::after{content:"";position:absolute;left:0;bottom:-1px;width:72px;height:2px;background:var(--accent)}
-.hero__stage::before{-webkit-text-stroke:1px rgba(212,255,58,.14)}
+.hero__stage::before{-webkit-text-stroke:1px rgba(214,180,108,.14)}
 .eyebrow{color:var(--accent)}
 .spot{border-top-color:var(--accent)}
 .price b{color:var(--accent)}
@@ -588,7 +588,7 @@ html{scrollbar-color:var(--accent) var(--bg)}
 [data-theme="light"]{
   --bg:#FFFFFF; --soft:#F3F3F0; --soft2:#E9E9E4; --ink:#0E0E10; --ink2:#3A3A3F; --muted:#6E6E73; --line:#E4E4DF;
   --cream:#F7F6F2; --peach:#FAF8F3; --sand:#F4F2EC;
-  --accent:#D4FF3A; --accent-text:#4E6B00;
+  --accent:#D6B46C; --accent-text:#8B6A2E;
 }
 [data-theme="light"] body{background:var(--bg);color:var(--ink)}
 [data-theme="light"] .nav{background:rgba(255,255,255,.92)}
@@ -618,7 +618,7 @@ html{scrollbar-color:var(--accent) var(--bg)}
 [data-theme="light"] .pd__thumbs button,[data-theme="light"] .form input,[data-theme="light"] .form textarea,[data-theme="light"] .chat{background:var(--soft)}
 [data-theme="light"] .line__img{background:color-mix(in srgb,var(--c,#888) 10%,var(--soft))}
 [data-theme="light"] .opts button[aria-checked="true"]{background:var(--ink);color:#fff}
-[data-theme="light"] .hint{color:var(--accent-text);background:#F6FFD9;border-color:#DDF59A}
+[data-theme="light"] .hint{color:var(--accent-text);background:#FBF5E8;border-color:#E8D5A6}
 [data-theme="light"] .sum--disc{color:var(--accent-text)}
 [data-theme="light"] .toast{background:var(--ink);color:#fff}
 [data-theme="light"] .loader{background:#fff;color:var(--ink)}
@@ -630,3 +630,343 @@ html[data-theme="light"]{scrollbar-color:#BDBDB8 #fff}
 [data-theme="light"] .foot__cols,[data-theme="light"] .foot__row{border-color:#26262B}
 [data-theme="light"] .foot__install{color:var(--accent)}
 [data-theme="light"] .nav__logo::first-letter{color:var(--ink)}
+
+/* =====================================================================
+   HERO v2 — พื้นขาว การ์ดสินค้าโค้ง 3 มิติ เลื่อนจอแล้วดูทีละชิ้น
+   (ใช้เหมือนกันทั้งโหมดมืดและสว่าง)
+   ===================================================================== */
+.hero{height:340vh}
+.hero__stage,[data-theme="light"] .hero__stage{--hp:0;background:#F3F3EF;color:#0E0E10}
+.hero__stage::before,[data-theme="light"] .hero__stage::before{content:"";position:absolute;inset:auto 0 0 0;height:1px;background:#DADAD4;-webkit-text-stroke:0}
+.hero__stage::after{content:"";position:absolute;left:50%;top:54%;width:min(78vw,1100px);aspect-ratio:2.6;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(214,180,108,.32),rgba(214,180,108,0));opacity:calc(var(--hp) * 3);pointer-events:none;z-index:0}
+#gl{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+.hero__copy{z-index:2;opacity:clamp(0,calc(1 - var(--hp) * 4.2),1);transform:translateY(calc(-44% - var(--hp) * 260px));will-change:transform,opacity}
+.hero__stage.is-moving .hero__copy{pointer-events:none}
+.hero__stage.is-moving .hero__copy a{pointer-events:none}
+.hero__copy .eyebrow{color:#8B6A2E}
+.hero__title{color:#0E0E10;font-weight:300;letter-spacing:-.035em}
+.hero__title::after{content:"";display:block;width:88px;height:4px;margin-top:22px;background:#D6B46C;border-radius:2px}
+.hero__lead{color:#4A4A50}
+.hero__copy .ribbon{color:#3A3A3F}
+.hero__copy .btn--ink{background:#0E0E10;color:#fff}
+.hero__copy .btn--ink .btn__arrow{color:#D6B46C}
+.hero__copy .btn--ghost{border-color:#C9C9C2;color:#0E0E10}
+.hero__copy .btn--ghost:hover{border-color:#0E0E10;color:#0E0E10}
+
+.spot{color:#0E0E10;border-top-color:#0E0E10!important;opacity:clamp(0,calc(var(--hp) * 5 - .6),1);z-index:3}
+.spot__cat{color:#6E6E73}
+.spot .btn--ink,[data-theme="light"] .spot .btn--ink{background:#D6B46C;color:#0E0E10}
+
+.hero__meta{position:absolute;left:var(--pad);bottom:44px;z-index:3;display:flex;align-items:center;gap:16px;color:#6E6E73;font-size:12px;letter-spacing:.12em}
+.hero__count{font:300 14px var(--font);letter-spacing:.06em;color:#6E6E73;min-width:64px}
+.hero__count b{font-weight:500;color:#0E0E10;font-size:22px;letter-spacing:0}
+.hero__track{position:relative;width:120px;height:2px;background:#DADAD4;overflow:hidden;border-radius:2px}
+.hero__track i{position:absolute;inset:0;background:#0E0E10;transform-origin:left;transform:scaleX(.125);transition:transform .6s var(--ease)}
+.hero__meta .hero__hint{position:static;display:inline;color:#8A8A90;opacity:clamp(0,calc(1 - var(--hp) * 5),1)}
+@media (max-width:760px){
+  .hero{height:300vh}
+  .hero__copy{top:auto;bottom:96px;transform:translateY(calc(var(--hp) * -200px))}
+  .hero__title::after{margin-top:14px;width:60px}
+  .hero__meta{bottom:22px}.hero__meta .hero__hint{display:none}
+  .spot{bottom:64px}
+}
+
+/* =====================================================================
+   ผสมสีขาว: กล่องรูปสินค้าเป็นพื้นสว่างบนหน้ามืด
+   ===================================================================== */
+html:not([data-theme="light"]) .card__media,html:not([data-theme="light"]) .tint .card__media{background:color-mix(in srgb,var(--c,#888) 9%,#F1F1ED)}
+html:not([data-theme="light"]) .card:hover .card__media{background:color-mix(in srgb,var(--c,#888) 16%,#F1F1ED);box-shadow:0 0 0 2px var(--accent)}
+html:not([data-theme="light"]) .card__media img{filter:drop-shadow(0 16px 18px rgba(0,0,0,.18))}
+html:not([data-theme="light"]) .cat__img,html:not([data-theme="light"]) .tint .cat__img{background:color-mix(in srgb,var(--c,#888) 16%,#F1F1ED)}
+html:not([data-theme="light"]) .cat:hover .cat__img{background:color-mix(in srgb,var(--c,#888) 26%,#F1F1ED);box-shadow:0 0 0 2px var(--accent)}
+html:not([data-theme="light"]) .cat__img img{filter:drop-shadow(0 16px 18px rgba(0,0,0,.2))}
+html:not([data-theme="light"]) .card__media .badge{background:#0E0E10;color:#F2F1EE;border-color:#0E0E10}
+
+/* =====================================================================
+   TAB BAR — เมนูด้านล่างแบบแอป สำหรับมือถือและไอแพด (≤1100px)
+   ===================================================================== */
+.tabbar{display:none}
+@media (max-width:1100px){
+  :root{--tabh:64px}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:1050;display:grid;grid-template-columns:repeat(5,1fr);
+    height:calc(var(--tabh) + env(safe-area-inset-bottom));padding:0 6px env(safe-area-inset-bottom);
+    background:rgba(14,14,16,.94);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-top:1px solid #26262B}
+  .tabbar a,.tabbar button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;border:0;padding:0;color:#8A8A90;font:300 11px/1 var(--font);letter-spacing:.02em;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:color .25s}
+  .tabbar svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;transition:transform .3s var(--ease)}
+  .tabbar a.is-on{color:var(--accent)}
+  .tabbar a.is-on::before{content:"";position:absolute;top:0;left:50%;width:26px;height:2px;margin-left:-13px;border-radius:0 0 2px 2px;background:var(--accent)}
+  .tabbar a:active svg,.tabbar button:active svg{transform:scale(.88)}
+  .tabbar__count{position:absolute;top:8px;left:calc(50% + 5px);min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--accent);color:#0E0E10;font:500 11px/18px var(--font);text-align:center}
+  .tabbar__count[hidden]{display:none}
+  .tabbar .bump{animation:bump .5s var(--ease)}
+  /* ปุ่มที่ย้ายลงแถบล่างแล้ว ซ่อนจาก header */
+  #searchBtn,#cartBtn{display:none!important}
+  body{padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(var(--tabh) + 16px + env(safe-area-inset-bottom))}
+  .hero__stage{height:calc(100vh - var(--tabh));min-height:560px}
+  [data-theme="light"] .tabbar{background:rgba(255,255,255,.94);border-top-color:#E4E4DF}
+  [data-theme="light"] .tabbar a,[data-theme="light"] .tabbar button{color:#7A7A80}
+  [data-theme="light"] .tabbar a.is-on{color:#0E0E10}
+  [data-theme="light"] .tabbar a.is-on::before{background:#0E0E10}
+}
+@supports (height:100dvh){@media (max-width:1100px){.hero__stage{height:calc(100dvh - var(--tabh) - env(safe-area-inset-bottom))}}}
+html:not([data-theme="light"]) .nav{background:rgba(14,14,16,.97)}
+@media (max-width:1100px) and (orientation:portrait){
+  .hero__copy{top:auto;bottom:110px;transform:translateY(calc(var(--hp) * -200px))}
+  .hero__meta .hero__hint{display:none}
+}
+
+/* =====================================================================
+   หน้าปกจากหลังบ้าน: รูปหน้าปก + แผ่นทับ + สีตัวหนังสือ
+   ===================================================================== */
+.hero__shade{position:absolute;inset:0;z-index:0;pointer-events:none;display:none}
+.hero__stage.has-cover,[data-theme="light"] .hero__stage.has-cover{background:#F3F3EF var(--cover) center/cover no-repeat}
+.hero__stage.has-cover::after{display:none}
+.has-cover .hero__shade{display:block;opacity:var(--dim,.55);background:linear-gradient(90deg,#F3F3EF 0%,rgba(243,243,239,.8) 38%,rgba(243,243,239,0) 78%)}
+.has-cover.tone-light .hero__shade{background:linear-gradient(90deg,#0E0E10 0%,rgba(14,14,16,.72) 38%,rgba(14,14,16,0) 78%)}
+.tone-light .hero__title,.tone-light .hero__copy .ribbon{color:#fff}
+.tone-light .hero__lead{color:rgba(255,255,255,.82)}
+.tone-light .hero__copy .eyebrow{color:#D6B46C}
+.tone-light .hero__copy .btn--ink{background:#D6B46C;color:#0E0E10}
+.tone-light .hero__copy .btn--ink .btn__arrow{color:#0E0E10}
+.tone-light .hero__copy .btn--ghost{border-color:rgba(255,255,255,.55);color:#fff}
+.tone-light .hero__copy .btn--ghost:hover{border-color:#D6B46C;color:#D6B46C}
+.tone-light .spot{color:#fff;border-top-color:#fff!important}.tone-light .spot__cat{color:rgba(255,255,255,.7)}
+.tone-light .hero__count,.tone-light .hero__meta .hero__hint{color:rgba(255,255,255,.7)}.tone-light .hero__count b{color:#fff}
+.tone-light .hero__track{background:rgba(255,255,255,.3)}.tone-light .hero__track i{background:#D6B46C}
+.cover-only .hero__copy{opacity:1;transform:translateY(-44%)}
+.cover-only .hero__meta,.cover-only .spot{display:none}
+.nav__logo.has-img img{display:block;height:34px;width:auto;max-width:180px;object-fit:contain}
+@media (max-width:760px),(max-width:1100px) and (orientation:portrait){
+  .hero__stage.has-cover{background-image:var(--cover-m,var(--cover))}
+  .has-cover .hero__shade{background:linear-gradient(0deg,#F3F3EF 0%,rgba(243,243,239,.85) 40%,rgba(243,243,239,0) 75%)}
+  .has-cover.tone-light .hero__shade{background:linear-gradient(0deg,#0E0E10 0%,rgba(14,14,16,.75) 40%,rgba(14,14,16,0) 75%)}
+  .cover-only .hero__copy{transform:none}
+}
+
+/* =====================================================================
+   ป้ายชื่อ/ราคาสินค้าที่โฟกัส (แทนกรอบการ์ด) — กลางจอใต้สินค้า
+   ===================================================================== */
+.spot{left:0;right:0;bottom:46px;margin:0 auto;width:max-content;max-width:calc(100% - 2 * var(--pad));min-width:0;
+  display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 26px 16px;border:0!important;border-radius:22px;text-align:center;
+  background:rgba(255,255,255,.66);backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);
+  box-shadow:0 18px 40px rgba(14,14,16,.10),inset 0 0 0 1px rgba(255,255,255,.6);color:#0E0E10}
+.spot__meta{display:flex;gap:12px;align-items:center;font:300 12px/1 var(--font);letter-spacing:.14em;color:#6E6E73;text-transform:uppercase}
+.spot__meta .spot__cat{grid-column:auto;font-size:12px;letter-spacing:.14em;color:#8B6A2E;display:inline-flex;align-items:center;gap:7px}
+.spot__meta .spot__cat::before{content:"";width:6px;height:6px;border-radius:50%;background:#D6B46C;box-shadow:0 0 0 3px rgba(214,180,108,.25)}
+.spot__no{font-variant-numeric:tabular-nums}
+.spot__name{grid-column:auto;font:300 clamp(22px,2.2vw,30px)/1.15 var(--font);letter-spacing:-.01em;max-width:520px}
+.spot__row{display:flex;align-items:center;gap:16px;margin-top:4px}
+.spot__price{grid-column:auto;font:500 18px var(--font);position:relative;padding-bottom:2px;background:linear-gradient(#D6B46C,#D6B46C) 0 100%/100% 5px no-repeat}
+.spot__btn{height:38px;padding:0 16px;border:0;border-radius:99px;background:#0E0E10;color:#fff;font:400 13px var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:background .25s,color .25s}
+.spot__btn span{color:#D6B46C;transition:transform .3s var(--ease)}
+.spot__btn:hover{background:#D6B46C;color:#0E0E10}.spot__btn:hover span{color:#0E0E10;transform:translateX(3px)}
+.tone-light .spot{background:rgba(14,14,16,.55);box-shadow:0 18px 40px rgba(0,0,0,.25),inset 0 0 0 1px rgba(255,255,255,.08);color:#fff}
+.tone-light .spot__meta{color:rgba(255,255,255,.65)}.tone-light .spot__meta .spot__cat{color:#D6B46C}
+.tone-light .spot__btn{background:#D6B46C;color:#0E0E10}.tone-light .spot__btn span{color:#0E0E10}
+.tone-light .spot__price{background-image:linear-gradient(rgba(214,180,108,.55),rgba(214,180,108,.55))}
+@media (max-width:760px){
+  .spot{bottom:70px;padding:12px 18px;gap:4px}
+  .spot__name{font-size:20px}
+  .spot__btn{height:34px;padding:0 13px}
+}
+@media (max-width:1100px) and (orientation:portrait){.spot{bottom:76px}}
+
+/* =====================================================================
+   SCROLL 3D — ลูกเล่น 3 มิติตามการเลื่อนจอ (01 → footer)
+   ใช้ translate / rotate / scale แยก จึงไม่ชนกับ transform เดิม (hover, reveal)
+   ===================================================================== */
+.s3d{--e:1;--sy:0;--x:0;--k:calc(1 - var(--e))}
+.cats,.bento,.rail,.grid,.promo,.block__head,.foot,.foot__cols{perspective:1300px}
+.s3d-on .s3d{will-change:translate,rotate,opacity}
+
+/* หัวข้อ: พลิกขึ้นจากพื้น + เลข 01 เลื่อนเข้า + เส้นนีออนวิ่ง */
+.s3d-head{transform-origin:0 100%;rotate:x calc(var(--k) * -55deg);translate:0 calc(var(--k) * 40px) calc(var(--k) * -80px);opacity:calc(.15 + var(--e) * .85)}
+.s3d-head .h2::before{width:max-content;translate:calc(var(--k) * -48px) 0;opacity:var(--e);letter-spacing:calc(.12em + var(--k) * .6em)}
+.s3d-on .s3d-head::after{transform:scaleX(var(--e));transform-origin:left;transition:none}
+
+/* หมวด / ตารางสินค้า / คอลัมน์ footer: ตั้งขึ้นจากแนวนอนเหมือนพลิกการ์ดขึ้นมา */
+.s3d-tilt{transform-origin:50% 100%;rotate:x calc(var(--k) * 52deg);translate:0 calc(var(--k) * 90px) calc(var(--k) * -160px);opacity:calc(var(--e) * 1.4 - .1)}
+
+/* แนะนำ (bento): ลอยขึ้นจากความลึกคนละระดับ + หันเข้าหากลาง + พารัลแลกซ์ต่อเนื่อง */
+.s3d-rise{rotate:y calc(var(--k) * 26deg);translate:0 calc(var(--k) * 140px + var(--sy) * var(--d,.6) * -70px) calc(var(--k) * -260px);opacity:calc(var(--e) * 1.3 - .05)}
+.s3d-rise:nth-child(3n+1){rotate:y calc(var(--k) * -26deg)}
+.s3d-rise .card__media img{translate:0 calc(var(--sy) * var(--d,.6) * 28px)}
+
+/* แถวเลื่อนข้าง (ขายดี / มาใหม่): หมุนเข้ามาเหมือนเปิดประตูทีละใบ */
+.s3d-swing{transform-origin:0 50%;rotate:y calc(var(--k) * -58deg);translate:calc(var(--k) * 160px) 0 calc(var(--k) * -220px);opacity:calc(var(--e) * 1.3 - .1)}
+
+/* แบนเนอร์โปรโมชัน: ล้มจากด้านหลังขึ้นมาตั้ง + ขยายเต็ม */
+.s3d-promo{transform-origin:50% 100%;rotate:x calc(var(--k) * 34deg);scale:calc(.84 + var(--e) * .16);translate:0 calc(var(--k) * 60px)}
+.s3d-promo .promo__title{translate:calc(var(--k) * -60px) 0;opacity:calc(.2 + var(--e) * .8)}
+
+/* ทั้งส่วนพับถอยเข้าไปตอนเลื่อนผ่านขึ้นไป (เลื่อนกลับลงมาก็กางออก) */
+.s3d-exit{transform-origin:50% 100%;rotate:x calc(var(--x) * 16deg);scale:calc(1 - var(--x) * .07);opacity:calc(1 - var(--x) * .55)}
+main{perspective:1600px;perspective-origin:50% 0}
+
+/* ตัวหนังสือใหญ่ footer: พลิกขึ้นทีละตัวอักษร */
+.foot{overflow:hidden}
+.s3d-foot{--e:1}
+.s3d-foot .ch{--l:clamp(0, calc(var(--e) * 1.7 - var(--i) * .09), 1);display:inline-block;transform-origin:50% 100%;
+  rotate:x calc((1 - var(--l)) * -95deg);translate:0 calc((1 - var(--l)) * .55em) calc((1 - var(--l)) * -1em);opacity:calc(var(--l) * 1.2)}
+
+/* แถบข้อความวิ่ง: เอียงตามความเร็วการเลื่อน */
+.ticker__track{--v:0;skew:calc(var(--v) * -14deg) 0}
+.ticker{perspective:800px}
+.ticker .ticker__track{rotate:x calc(var(--v) * 24deg)}
+
+.s3d-off .s3d{--e:1!important;--x:0!important}
+@media (max-width:760px){
+  .s3d-rise{rotate:none;translate:0 calc(var(--k) * 90px) calc(var(--k) * -140px)}
+  .s3d-exit{rotate:x calc(var(--x) * 10deg)}
+}
+
+/* =====================================================================
+   SCROLL 3D+ — ขยับต่อเนื่องตลอดการเลื่อน (ไม่ใช่แค่ตอนเข้าจอ)
+   --sy ตำแหน่งแนวตั้งเทียบกลางจอ · --sx แนวนอน · --vel ความเร็วเลื่อน (−1…1) · --va ขนาดความเร็ว
+   ===================================================================== */
+:root{--vel:0;--va:0;--page:0}
+
+/* หน้าเว็บโค้งเหมือนกระบอก + เด้งตามความเร็ว */
+.s3d-tilt{rotate:x calc(var(--k) * 52deg + var(--sy) * 13deg + var(--vel) * 9deg);
+  translate:0 calc(var(--k) * 90px + var(--vel) * -16px) calc(var(--k) * -160px - var(--va) * 70px)}
+.s3d-rise{rotate:y calc(var(--k) * 26deg + var(--sx) * -16deg);
+  translate:0 calc(var(--k) * 140px + var(--sy) * var(--d,.6) * -70px + var(--vel) * -22px) calc(var(--k) * -260px - var(--va) * 90px)}
+.s3d-rise:nth-child(3n+1){rotate:y calc(var(--k) * -26deg + var(--sx) * -16deg)}
+/* แถวเลื่อนข้าง: แบบ coverflow + ไหลไปข้างตามการเลื่อนจอ */
+.s3d-swing{rotate:y calc(var(--k) * -58deg + var(--sx) * -30deg);
+  translate:calc(var(--k) * 160px + var(--ssy,0) * 170px) 0 calc(var(--k) * -220px - var(--va) * 80px)}
+.s3d-promo{rotate:x calc(var(--k) * 34deg + var(--sy) * -9deg + var(--vel) * 6deg)}
+
+/* รูปในการ์ด: เลื่อนสวนทาง หมุนเล็กน้อย และขยายตามความเร็ว */
+.s3d .card__media img,.s3d .cat__img img{translate:calc(var(--sx,0) * -14px) calc(var(--sy) * -26px);rotate:calc(var(--sy) * -7deg + var(--vel) * 5deg);scale:calc(1 + var(--va) * .1)}
+.s3d .card__media img.photo{rotate:none;translate:none;scale:calc(1.08 + var(--va) * .06)}
+
+/* หัวข้อพลิ้วเป็นคลื่นตามความเร็ว */
+.s3d-head .w{translate:0 calc(var(--vel) * (1 + var(--wi,0) * .8) * -9px);rotate:x calc(var(--vel) * (1 + var(--wi,0) * .5) * -18deg)}
+
+/* ตัวหนังสือยักษ์วิ่งด้านหลังแต่ละส่วน */
+.has-bigword{position:relative;overflow-x:clip}
+.has-bigword > :not(.bigword):not(.filters){position:relative;z-index:1}
+.bigword{position:absolute;left:0;top:clamp(20px,4vw,70px);z-index:0;display:flex;gap:6vw;white-space:nowrap;pointer-events:none;
+  font:500 clamp(90px,15vw,260px)/1 var(--font);letter-spacing:-.04em;color:transparent;-webkit-text-stroke:1px rgba(214,180,108,.16);
+  translate:calc(-10vw + var(--ssy,0) * var(--dir,1) * 32vw) 0;rotate:z calc(var(--vel) * -1.5deg)}
+.bigword span:nth-child(2){-webkit-text-stroke-color:rgba(242,241,238,.06)}
+[data-theme="light"] .bigword{-webkit-text-stroke-color:rgba(14,14,16,.09)}
+[data-theme="light"] .bigword span:nth-child(2){-webkit-text-stroke-color:rgba(78,107,0,.12)}
+
+/* footer: ตัวอักษรเด้งเป็นคลื่น */
+.s3d-foot .ch{translate:0 calc((1 - var(--l)) * .55em + var(--vel) * (1 + var(--i) * .35) * -10px) calc((1 - var(--l)) * -1em)}
+
+/* แถบข้อความวิ่ง: เอียงทั้งแถบ + ตัวอักษรเอียงตามความเร็ว */
+.ticker{transform:skewY(calc(var(--vel) * -1.6deg)) scaleY(calc(1 + var(--va) * .25))}
+.ticker__track{skew:none}
+.ticker__track span span{display:inline-block;transform:skewX(calc(var(--vel) * -22deg))}
+
+/* แถบความคืบหน้าการเลื่อนสีนีออน */
+body::before{content:"";position:fixed;left:0;top:0;width:100%;height:3px;z-index:1001;background:#D6B46C;transform-origin:0 50%;transform:scaleX(var(--page));box-shadow:0 0 12px rgba(214,180,108,.6);pointer-events:none}
+
+@media (max-width:760px){
+  .s3d-tilt{rotate:x calc(var(--k) * 45deg + var(--sy) * 8deg + var(--vel) * 6deg)}
+  .s3d-rise{rotate:none}
+  .s3d-swing{rotate:y calc(var(--k) * -45deg + var(--sx) * -20deg);translate:calc(var(--k) * 120px + var(--ssy,0) * 90px) 0 calc(var(--k) * -160px)}
+  .bigword{font-size:30vw}
+}
+.s3d-off .bigword{translate:-10vw 0}
+
+/* =====================================================================
+   SCROLL 3D · CALM — ลดแรงลง นุ่มนวล ไม่รบกวนสายตา (ทับค่าด้านบน)
+   ไม่มีการเด้งตามความเร็วแล้ว เหลือแค่ความลึกและพารัลแลกซ์เบาๆ
+   ===================================================================== */
+.s3d-head{rotate:x calc(var(--k) * -22deg);translate:0 calc(var(--k) * 26px) calc(var(--k) * -40px);opacity:calc(.25 + var(--e) * .75)}
+.s3d-head .h2::before{translate:calc(var(--k) * -18px) 0;letter-spacing:.12em}
+.s3d-head .w{translate:none;rotate:none}
+
+.s3d-tilt{rotate:x calc(var(--k) * 20deg + var(--sy) * 3deg);translate:0 calc(var(--k) * 48px) calc(var(--k) * -60px);opacity:calc(.2 + var(--e) * .8)}
+.s3d-rise,.s3d-rise:nth-child(3n+1){rotate:y calc(var(--k) * 8deg + var(--sx,0) * -3deg);
+  translate:0 calc(var(--k) * 64px + var(--sy) * var(--d,.6) * -26px) calc(var(--k) * -90px);opacity:calc(.2 + var(--e) * .8)}
+.s3d-rise:nth-child(3n+1){rotate:y calc(var(--k) * -8deg + var(--sx,0) * -3deg)}
+.s3d-swing{rotate:y calc(var(--k) * -22deg + var(--sx,0) * -8deg);translate:calc(var(--k) * 60px + var(--ssy,0) * 40px) 0 calc(var(--k) * -70px);opacity:calc(.2 + var(--e) * .8)}
+.s3d-promo{rotate:x calc(var(--k) * 12deg);scale:calc(.95 + var(--e) * .05);translate:0 calc(var(--k) * 30px)}
+.s3d-promo .promo__title{translate:calc(var(--k) * -24px) 0}
+.s3d-exit{rotate:x calc(var(--x) * 5deg);scale:calc(1 - var(--x) * .025);opacity:calc(1 - var(--x) * .3)}
+
+.s3d .card__media img,.s3d .cat__img img{translate:0 calc(var(--sy) * -10px);rotate:none;scale:none}
+.s3d .card__media img.photo{translate:none;scale:1.04}
+
+.bigword{translate:calc(-10vw + var(--ssy,0) * var(--dir,1) * 12vw) 0;rotate:none;-webkit-text-stroke-color:rgba(214,180,108,.09)}
+.bigword span:nth-child(2){-webkit-text-stroke-color:rgba(242,241,238,.04)}
+[data-theme="light"] .bigword{-webkit-text-stroke-color:rgba(14,14,16,.06)}
+
+.s3d-foot .ch{rotate:x calc((1 - var(--l)) * -55deg);translate:0 calc((1 - var(--l)) * .3em) 0}
+.ticker,.ticker .ticker__track{transform:none;rotate:none}
+.ticker__track span span{transform:none}
+body::before{height:2px;box-shadow:none;opacity:.85}
+.s3d-on .s3d{transition:none}
+
+@media (max-width:760px){
+  .s3d-tilt{rotate:x calc(var(--k) * 16deg);translate:0 calc(var(--k) * 36px) 0}
+  .s3d-rise,.s3d-rise:nth-child(3n+1){rotate:none;translate:0 calc(var(--k) * 48px) 0}
+  .s3d-swing{rotate:y calc(var(--k) * -16deg);translate:calc(var(--k) * 40px + var(--ssy,0) * 24px) 0 0}
+  .s3d-exit{rotate:none;scale:none;opacity:calc(1 - var(--x) * .25)}
+}
+
+/* toast ซ่อนอยู่ทับแถบเมนูล่าง ทำให้กดปุ่มกลางไม่ได้ → ไม่รับการคลิก */
+.toast{pointer-events:none}
+/* ประสิทธิภาพ: ตัวหนังสือยักษ์แยกเลเยอร์ ไม่วาดใหม่ทุกเฟรม */
+.bigword{will-change:translate;contain:layout paint}
+.s3d-on .s3d{will-change:auto}
+
+/* =====================================================================
+   รูปเต็มช่อง ไม่มีกรอบสีพื้นหลัง (การ์ดสินค้า หมวดหมู่ รายละเอียด ตะกร้า)
+   ===================================================================== */
+html .card__media,html .tint .card__media,html .card:hover .card__media,
+html .cat__img,html .tint .cat__img,html .cat:hover .cat__img,
+html .pd__main,html[data-theme="light"] .pd__main,html .pd__thumbs button,html .line__img,html[data-theme="light"] .line__img{background:transparent!important}
+html .card__media img,html .card__media img.photo,html .cat__img img,html .bento .card:first-child .card__media img{
+  width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;filter:none!important}
+html .bento .card:first-child .card__media{aspect-ratio:1/1;min-height:0}
+html .pd__main img,html .pd__main img.photo{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;filter:none}
+html .pd__thumbs button{padding:0;overflow:hidden}html .pd__thumbs img{object-fit:cover}
+html .line__img img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover}
+/* ป้าย/ตัวเลขอันดับบนรูป ให้อ่านออกเมื่อรูปเต็มช่อง */
+.rank__no{text-shadow:0 2px 14px rgba(0,0,0,.55)}
+
+/* =====================================================================
+   โทนดำ · ทองแชมเปญ · เงิน
+   ===================================================================== */
+:root{--gold:#D6B46C;--gold-hi:#F3DDA6;--gold-lo:#A87C36;--silver:#E7E4DD;
+  --gold-grad:linear-gradient(135deg,#F3DDA6 0%,#D6B46C 42%,#A87C36 100%)}
+html:not([data-theme="light"]){--bg:#0B0B0C;--soft:#151516;--soft2:#1D1D1F;--ink:#ECE9E2;--ink2:#BDB9B0;--muted:#8A877F;--line:#262624;--accent:#D6B46C;--on-accent:#0B0B0C}
+[data-theme="light"]{--accent:#D6B46C;--accent-text:#8B6A2E}
+
+/* ปุ่มหลัก ตัวนับตะกร้า แถบข้อความวิ่ง: ไล่สีทองแบบโลหะ */
+.btn--ink,.nav__count,.tabbar__count,.quick,.spot__btn:hover,.tone-light .spot__btn,.tone-light .hero__copy .btn--ink{background:var(--gold-grad);color:#0B0B0C}
+.ticker,.ticker{background:var(--gold-grad)}
+.hero__copy .btn--ink{background:#0B0B0C;color:var(--silver)}
+.hero__copy .btn--ink .btn__arrow,.spot__btn span{color:var(--gold)}
+.spot__btn{background:#0B0B0C;color:var(--silver)}
+
+/* ตัวหนังสือทองแบบโลหะ: footer ใหญ่ และตัวแรกของโลโก้ */
+.foot__big,.foot__big .ch{background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent}
+.foot{border-top-color:var(--gold-lo)}
+.nav__logo::first-letter{color:var(--gold)}
+body::before{background:var(--gold-grad)}
+
+/* หน้าปก: งาช้างอุ่นให้เข้ากับทอง */
+.hero__stage,[data-theme="light"] .hero__stage{background:#F5F2EA}
+.hero__stage::after{background:radial-gradient(closest-side,rgba(214,180,108,.28),rgba(214,180,108,0))}
+.hero__title::after{background:var(--gold-grad)}
+.spot__price{background-image:linear-gradient(rgba(214,180,108,.55),rgba(214,180,108,.55))}
+.hero__track i{background:var(--gold-lo)}
+
+/* เส้นใต้หัวข้อ เลขส่วน ป้ายลดราคา */
+.block__head::after{background:var(--gold-grad)}
+.block__head .h2::before{color:var(--gold)}
+.badge--sale,.badge.sale{background:var(--gold-grad);color:#0B0B0C}
+.price b{color:var(--gold)}
+html:not([data-theme="light"]) .card:hover .card__media,html:not([data-theme="light"]) .cat:hover .cat__img{box-shadow:0 0 0 1.5px var(--gold)}
+.bigword{-webkit-text-stroke-color:rgba(214,180,108,.10)}
+.bigword span:nth-child(2){-webkit-text-stroke-color:rgba(231,228,221,.05)}
+.block__head .h2::before,#categories .h2::before,#featured .h2::before,#best .h2::before,#new .h2::before,#shop .h2::before{color:var(--gold)!important}
+[data-theme="light"] .block__head .h2::before{color:var(--accent-text)!important}

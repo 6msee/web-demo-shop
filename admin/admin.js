@@ -1,5 +1,5 @@
-// FIZZ & CO. — Content Studio (หลังบ้าน CMS) · Supabase Auth + Database + Storage + Realtime
-import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261109.4';
+// MARBO98 — Content Studio (หลังบ้าน CMS) · Supabase Auth + Database + Storage + Realtime
+import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261109.15';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s, r = document) => r.querySelector(s);
@@ -66,23 +66,23 @@ async function shrink(file) {
   const blob = await new Promise((r) => c.toBlob(r, 'image/webp', 0.9));
   return blob ? new File([blob], file.name.replace(/\.\w+$/, '') + '.webp', { type: 'image/webp' }) : file;
 }
-async function uploadImage(file) {
+async function uploadImage(file, folder = 'site') {
   if (!file || !file.type.startsWith('image/')) throw new Error('รองรับเฉพาะไฟล์รูปภาพ');
   const f = await shrink(file);
   if (f.size > 5 * 1024 * 1024) throw new Error('ไฟล์ใหญ่เกิน 5 MB');
   const safe = f.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '') || 'image';
-  const path = `uploads/${Date.now()}-${safe}`;
+  const path = `${['site', 'products', 'categories'].includes(folder) ? folder : 'site'}/${Date.now()}-${safe}`;
   const { error } = await sb.storage.from('media').upload(path, f, { cacheControl: '31536000', upsert: false, contentType: f.type });
   if (error) throw error;
   return sb.storage.from('media').getPublicUrl(path).data.publicUrl;
 }
 // ช่องเลือกรูป: คืนค่า getter ของ URL ปัจจุบัน
-function imgPicker(host, url, { allowClear = true, hint = '' } = {}) {
+function imgPicker(host, url, { allowClear = true, hint = '', folder = 'site' } = {}) {
   let cur = url || '';
   host.innerHTML = `<div class="imgpick">
       <div class="imgpick__prev" data-prev></div>
       <div class="stack" style="gap:8px">
-        <div class="row"><label class="btn btn--sm"><input type="file" accept="image/*" hidden data-file>อัปโหลดรูป</label>
+        <div class="row"><label class="btn btn--sm"><input type="file" accept="image/*" hidden data-file>อัปโหลดรูป</label><button type="button" class="btn btn--sm" data-lib>เลือกจากคลัง</button>
         ${allowClear ? '<button type="button" class="btn btn--sm" data-clear>ล้างรูป</button>' : ''}</div>
         <input type="url" placeholder="หรือวาง URL รูป" data-url value="${esc(cur)}">
         ${hint ? `<small class="muted">${esc(hint)}</small>` : ''}
@@ -93,12 +93,110 @@ function imgPicker(host, url, { allowClear = true, hint = '' } = {}) {
   $('[data-file]', host).addEventListener('change', async (e) => {
     const file = e.target.files[0]; if (!file) return;
     prev.textContent = 'กำลังอัปโหลด…'; prev.style.backgroundImage = '';
-    try { cur = await uploadImage(file); toast('อัปโหลดรูปแล้ว'); } catch (err) { fail(err); }
+    try { cur = await uploadImage(file, folder); toast('อัปโหลดรูปแล้ว'); } catch (err) { fail(err); }
     paint(); e.target.value = '';
   });
   urlIn.addEventListener('change', () => { cur = urlIn.value.trim(); paint(); });
+  $('[data-lib]', host).addEventListener('click', async () => { const u = await pickFromLibrary(folder); if (u) { cur = u; paint(); } });
   const clr = $('[data-clear]', host); if (clr) clr.addEventListener('click', () => { cur = ''; paint(); });
   return () => cur;
+}
+
+/* ---------- คลังรูป: แยกประเภทตามโฟลเดอร์ + ดูว่ารูปถูกใช้ที่ไหน ---------- */
+const MEDIA_TYPES = { site: 'รูปหน้าเว็บ', products: 'รูปสินค้า', categories: 'รูปหมวดหมู่' };
+const MEDIA_FOLDERS = ['site', 'products', 'categories', 'uploads'];   // uploads = รูปเก่าก่อนแยกประเภท
+const isImgUrl = (v) => typeof v === 'string' && /\.(png|jpe?g|webp|gif|avif|svg)(\?|$)/i.test(v);
+async function listMedia() {
+  const res = await Promise.all(MEDIA_FOLDERS.map((f) => sb.storage.from('media').list(f, { limit: 1000, sortBy: { column: 'created_at', order: 'desc' } })));
+  const out = [];
+  res.forEach((r, i) => {
+    if (r.error) throw r.error;
+    (r.data || []).filter((x) => x.id).forEach((x) => {
+      const path = `${MEDIA_FOLDERS[i]}/${x.name}`;
+      out.push({ name: x.name, path, folder: MEDIA_FOLDERS[i], url: sb.storage.from('media').getPublicUrl(path).data.publicUrl, size: x.metadata?.size || 0, created_at: x.created_at });
+    });
+  });
+  return out.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+const CONTENT_LABEL = { 'hero.cover_url': 'หน้าปก (คอม)', 'hero.cover_mobile_url': 'หน้าปก (มือถือ)', 'promo.img_url': 'แบนเนอร์โปรโมชัน', 'brand.logo_url': 'โลโก้ร้าน', 'brand.og_image': 'รูปตอนแชร์ลิงก์' };
+async function mediaUsage() {
+  const [cb, pr, sz, ct] = await Promise.all([
+    sb.from('content_blocks').select('key,data'), sb.from('products').select('id,name,images'),
+    sb.from('product_sizes').select('product_id,label,img_url').not('img_url', 'is', null), sb.from('categories').select('id,name,img_url')]);
+  for (const r of [cb, pr, sz, ct]) if (r.error) throw r.error;
+  const use = new Map();
+  const add = (u, type, label) => { if (!u) return; if (!use.has(u)) use.set(u, []); use.get(u).push({ type, label }); };
+  cb.data.forEach((b) => Object.entries(b.data || {}).forEach(([k, v]) => { if (isImgUrl(v)) add(v, 'site', CONTENT_LABEL[`${b.key}.${k}`] || `${b.key}.${k}`); }));
+  const pname = Object.fromEntries(pr.data.map((p) => [p.id, p.name]));
+  pr.data.forEach((p) => (p.images || []).forEach((u, i) => add(u, 'products', p.name + (i === 0 ? ' · ปก' : ''))));
+  sz.data.forEach((z) => add(z.img_url, 'products', `${pname[z.product_id] || 'สินค้า'} · ${z.label}`));
+  ct.data.forEach((c) => add(c.img_url, 'categories', `หมวด ${c.name}`));
+  return use;
+}
+const mediaType = (m, use) => (MEDIA_TYPES[m.folder] ? m.folder : ((use.get(m.url) || [])[0] || {}).type || 'unused');
+
+// เปลี่ยนรูปทุกที่ที่ใช้ URL เดิม (หน้าเว็บ สินค้า ตัวเลือก หมวดหมู่)
+async function replaceEverywhere(oldUrl, newUrl) {
+  const { data: blocks, error: e1 } = await sb.from('content_blocks').select('key,data'); if (e1) throw e1;
+  for (const b of blocks) {
+    const d = { ...(b.data || {}) }; let hit = false;
+    Object.keys(d).forEach((k) => { if (d[k] === oldUrl) { d[k] = newUrl; hit = true; } });
+    if (hit) { const { error } = await sb.from('content_blocks').update({ data: d }).eq('key', b.key); if (error) throw error; }
+  }
+  const { data: prods, error: e2 } = await sb.from('products').select('id,images').contains('images', [oldUrl]); if (e2) throw e2;
+  for (const p of prods) { const { error } = await sb.from('products').update({ images: p.images.map((u) => (u === oldUrl ? newUrl : u)) }).eq('id', p.id); if (error) throw error; }
+  for (const [t, col] of [['product_sizes', 'img_url'], ['categories', 'img_url']]) { const { error } = await sb.from(t).update({ [col]: newUrl }).eq(col, oldUrl); if (error) throw error; }
+}
+
+// หน้าต่าง "เลือกจากคลัง": คืนค่า URL (หรือ array ถ้า multiple) / null ถ้ายกเลิก
+function pickFromLibrary(type = 'site', { multiple = false } = {}) {
+  return new Promise((resolve) => {
+    const box = document.createElement('div'); box.className = 'lib';
+    box.innerHTML = `<div class="lib__backdrop" data-x></div>
+      <div class="lib__panel" role="dialog" aria-modal="true" aria-label="เลือกรูปจากคลัง">
+        <header class="lib__head"><b>เลือกรูปจากคลัง</b><span class="spacer"></span>
+          <label class="btn btn--sm btn--primary"><input type="file" accept="image/*" multiple hidden data-up>+ อัปโหลดเป็น${esc(MEDIA_TYPES[type] || 'รูป')}</label>
+          <button class="iconbtn" data-x aria-label="ปิด"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+        <div class="tabs lib__tabs" role="tablist" data-tabs></div>
+        <div class="lib__body" data-body><div class="empty">กำลังโหลด…</div></div>
+        <footer class="lib__foot"><span class="muted tiny" data-n>${multiple ? 'เลือกได้หลายรูป' : 'คลิกรูปเพื่อเลือก'}</span><span class="spacer"></span>
+          <button class="btn" data-x>ยกเลิก</button><button class="btn btn--primary" data-ok disabled>ใช้รูปที่เลือก</button></footer></div>`;
+    document.body.appendChild(box);
+    let items = [], use = new Map(), tab = type, sel = [];
+    const keyEsc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(null); } };
+    const done = (v) => { document.removeEventListener('keydown', keyEsc, true); box.remove(); resolve(v); };
+    document.addEventListener('keydown', keyEsc, true);
+    $$('[data-x]', box).forEach((b) => b.addEventListener('click', () => done(null)));
+    $('[data-ok]', box).addEventListener('click', () => done(multiple ? sel : sel[0]));
+    const paint = () => {
+      const cnt = (t) => items.filter((m) => t === 'all' || mediaType(m, use) === t).length;
+      $('[data-tabs]', box).innerHTML = [...Object.entries(MEDIA_TYPES), ['all', 'ทั้งหมด']].map(([k, n]) => `<button role="tab" data-t="${k}" aria-selected="${tab === k}">${n}<span class="n">${cnt(k)}</span></button>`).join('');
+      $$('[data-t]', box).forEach((b) => b.addEventListener('click', () => { tab = b.dataset.t; paint(); }));
+      const list = items.filter((m) => tab === 'all' || mediaType(m, use) === tab);
+      $('[data-body]', box).innerHTML = list.length ? `<div class="lib__grid">${list.map((m) => {
+        const u = use.get(m.url) || [];
+        return `<button type="button" class="lib__item ${sel.includes(m.url) ? 'on' : ''}" data-u="${esc(m.url)}" title="${esc(m.name)}">
+          <span class="lib__img" style="background-image:url('${esc(m.url)}')"></span>
+          <span class="lib__cap">${u.length ? esc(u[0].label) + (u.length > 1 ? ` +${u.length - 1}` : '') : '<i>ยังไม่ได้ใช้</i>'}</span></button>`;
+      }).join('')}</div>` : '<div class="empty">ยังไม่มีรูปในประเภทนี้ · กดอัปโหลดด้านบน</div>';
+      $$('[data-u]', box).forEach((b) => b.addEventListener('click', () => {
+        const u = b.dataset.u;
+        sel = multiple ? (sel.includes(u) ? sel.filter((x) => x !== u) : [...sel, u]) : [u];
+        $$('[data-u]', box).forEach((x) => x.classList.toggle('on', sel.includes(x.dataset.u)));
+        $('[data-ok]', box).disabled = !sel.length;
+        $('[data-n]', box).textContent = sel.length ? `เลือก ${sel.length} รูป` : '';
+      }));
+      if (!multiple) $$('[data-u]', box).forEach((b) => b.addEventListener('dblclick', () => done(b.dataset.u)));
+    };
+    $('[data-up]', box).addEventListener('change', async (e) => {
+      const files = [...e.target.files]; if (!files.length) return;
+      toast(`กำลังอัปโหลด ${files.length} รูป…`);
+      for (const f of files) { try { const u = await uploadImage(f, MEDIA_TYPES[type] ? type : 'site'); sel = multiple ? [...sel, u] : [u]; } catch (err) { fail(err); } }
+      await load(); $('[data-ok]', box).disabled = !sel.length;
+    });
+    const load = async () => { try { [items, use] = await Promise.all([listMedia(), mediaUsage()]); paint(); } catch (err) { fail(err); $('[data-body]', box).innerHTML = '<div class="empty">โหลดคลังรูปไม่ได้</div>'; } };
+    load();
+  });
 }
 
 /* =========================================================
@@ -316,11 +414,11 @@ async function dashboard() {
   on('#xlsxBtn', 'click', async (e) => {
     const btn = e.currentTarget; busy(btn, true, 'กำลังสร้างไฟล์…');
     try {
-      await loadScript('../vendor/xlsx.mini.min.js?v=20261109.4');
+      await loadScript('../vendor/xlsx.mini.min.js?v=20261109.15');
       const X = window.XLSX, wb = X.utils.book_new();
       const sheet = (name, rows, widths) => { const ws = X.utils.aoa_to_sheet(rows); if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); X.utils.book_append_sheet(wb, ws, name); };
       const n2 = (v) => Math.round(Number(v) * 100) / 100;
-      sheet('สรุป', [['รายงานร้าน FIZZ & CO.'], ['ช่วงเวลา', `${dashDays} วันล่าสุด (ถึง ${today})`], ['สร้างเมื่อ', fmtDate(Date.now())], [],
+      sheet('สรุป', [['รายงานร้าน MARBO98'], ['ช่วงเวลา', `${dashDays} วันล่าสุด (ถึง ${today})`], ['สร้างเมื่อ', fmtDate(Date.now())], [],
         ['ยอดขาย (ไม่รวมยกเลิก)', n2(rev)], ['จำนวนคำสั่งซื้อ', live.length], ['จำนวนชิ้นที่ขาย', units], ['ยอดเฉลี่ยต่อออเดอร์', n2(aov)], ['รอชำระเงิน', pending], ['ยกเลิก', orders.length - live.length]], [28, 34]);
       sheet('ยอดขายรายวัน', [['วันที่', 'ยอดขาย (บาท)'], ...Object.keys(byDay).map((d) => [d, n2(byDay[d])])], [14, 16]);
       sheet('ตามหมวดหมู่', [['หมวดหมู่', 'ยอดขาย (บาท)', 'สัดส่วน %', 'จำนวนชิ้น'], ...cats.map((c) => [c.name, n2(c.rev), Math.round((c.rev / catTotal) * 1000) / 10, c.qty])], [22, 16, 12, 12]);
@@ -458,8 +556,8 @@ async function products() {
       const c = cb[p.category_id] || { color: '#888', name: 'ไม่มีหมวด' };
       const img = cover(p);
       const sizes = (p.product_sizes || []).sort((a, b) => a.sort - b.sort);
-      return `<article class="pcard ${p.active ? '' : 'off'}" style="--c1:${esc(c.color)};--c2:#fff">
-        <div class="pcard__media">${p.badge ? `<span class="pcard__badge">${esc(p.badge)}</span>` : ''}${img ? `<img src="${esc(imgUrl(img))}" alt="" style="${/\.jpe?g/i.test(img) ? 'height:100%;width:100%;object-fit:cover;filter:none' : ''}">` : '<span class="muted">ไม่มีรูป</span>'}</div>
+      return `<article class="pcard ${p.active ? '' : 'off'}">
+        <div class="pcard__media">${p.badge ? `<span class="pcard__badge">${esc(p.badge)}</span>` : ''}${img ? `<img src="${esc(imgUrl(img))}" alt="">` : '<span class="muted">ไม่มีรูป</span>'}</div>
         <div class="pcard__body"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><h3>${esc(p.name)}</h3>
           <button class="star" data-star="${p.id}" aria-pressed="${p.featured}" title="สินค้าแนะนำ" aria-label="ตั้งเป็นสินค้าแนะนำ">${STAR}</button></div>
           <span class="muted tiny"><span class="dot" style="background:${esc(c.color)};width:9px;height:9px"></span> ${esc(c.name)} · /${esc(p.slug)} · ${(p.images || []).length} รูป</span>
@@ -486,21 +584,22 @@ async function products() {
 }
 
 // ตัวจัดการรูปหลายรูป (รูปแรก = รูปปก)
-function galleryEditor(host, urls) {
+function galleryEditor(host, urls, folder = 'products') {
   let list = [...(urls || [])];
   const paint = () => {
     host.innerHTML = `<div class="gallery">${list.map((u, i) => `<div class="gal ${i === 0 ? 'cover' : ''}"><div class="gal__img" style="background-image:url('${esc(imgUrl(u))}')"></div>
         <div class="gal__bar"><button type="button" data-mv="${i}" data-d="-1" aria-label="เลื่อนไปซ้าย" ${i === 0 ? 'disabled' : ''}>←</button><button type="button" data-rmimg="${i}" aria-label="ลบรูป">✕</button><button type="button" data-mv="${i}" data-d="1" aria-label="เลื่อนไปขวา" ${i === list.length - 1 ? 'disabled' : ''}>→</button></div></div>`).join('')}
       <label class="gal-add"><input type="file" accept="image/*" multiple hidden data-gfile><span>+ อัปโหลดรูป<br><small>เลือกได้หลายรูป</small></span></label></div>
-      <div class="row" style="margin-top:10px"><input type="url" placeholder="หรือวาง URL รูป แล้วกดเพิ่ม" data-gurl style="max-width:420px"><button type="button" class="btn btn--sm" data-gadd>เพิ่ม URL</button></div>`;
+      <div class="row" style="margin-top:10px"><button type="button" class="btn btn--sm" data-glib>เลือกจากคลังรูปสินค้า</button><input type="url" placeholder="หรือวาง URL รูป แล้วกดเพิ่ม" data-gurl style="max-width:340px"><button type="button" class="btn btn--sm" data-gadd>เพิ่ม URL</button></div>`;
     $$('[data-mv]', host).forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.mv, j = i + +b.dataset.d; [list[i], list[j]] = [list[j], list[i]]; paint(); }));
     $$('[data-rmimg]', host).forEach((b) => b.addEventListener('click', () => { list.splice(+b.dataset.rmimg, 1); paint(); }));
     $('[data-gfile]', host).addEventListener('change', async (e) => {
       const files = [...e.target.files]; if (!files.length) return;
       toast(`กำลังอัปโหลด ${files.length} รูป…`);
-      for (const f of files) { try { list.push(await uploadImage(f)); } catch (err) { fail(err); } }
+      for (const f of files) { try { list.push(await uploadImage(f, folder)); } catch (err) { fail(err); } }
       paint(); toast('อัปโหลดเสร็จแล้ว');
     });
+    $('[data-glib]', host).addEventListener('click', async () => { const us = await pickFromLibrary(folder, { multiple: true }); if (us && us.length) { list.push(...us.filter((u) => !list.includes(u))); paint(); } });
     $('[data-gadd]', host).addEventListener('click', () => { const v = $('[data-gurl]', host).value.trim(); if (v) { list.push(v); paint(); } });
   };
   paint();
@@ -530,7 +629,7 @@ function editProduct(p, cats) {
       <div class="grid2"><div class="field"><label for="pName">ชื่อสินค้า *</label><input id="pName" value="${esc(p.name)}" required></div>
         <div class="field"><label for="pSlug">Slug (ภาษาอังกฤษ) *</label><input id="pSlug" value="${esc(p.slug)}" placeholder="oversized-tee"><small>a-z, 0-9 และ - เท่านั้น</small></div></div>
       <div class="grid2"><div class="field"><label for="pCat">หมวดหมู่</label><select id="pCat"><option value="">— ไม่มีหมวด —</option>${cats.map((c) => `<option value="${esc(c.id)}" ${p.category_id === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
-        <div class="field"><label for="pBrand">แบรนด์ / บรรทัดย่อย</label><input id="pBrand" value="${esc(p.brand_line || '')}" placeholder="เช่น FIZZ Studio"></div></div>
+        <div class="field"><label for="pBrand">แบรนด์ / บรรทัดย่อย</label><input id="pBrand" value="${esc(p.brand_line || '')}" placeholder="เช่น MARBO98 Studio"></div></div>
       <div class="field"><label for="pDesc">คำอธิบายสินค้า</label><textarea id="pDesc" rows="3">${esc(p.description || '')}</textarea></div>
       <div class="grid3"><div class="field"><label for="pBadge">ป้าย (เช่น ขายดี, ใหม่)</label><input id="pBadge" value="${esc(p.badge || '')}"></div>
         <div class="field"><label for="pTags">แท็ก (คั่นด้วย ,)</label><input id="pTags" value="${esc((p.tags || []).join(', '))}" placeholder="oversize, cotton"></div>
@@ -556,7 +655,7 @@ function editProduct(p, cats) {
     $$('[data-delrow]').forEach((b) => { b.onclick = () => { const tr = b.closest('tr'); if (tr.dataset.id) removed.push(tr.dataset.id); tr.remove(); }; });
     $$('[data-vfile]').forEach((inp) => { inp.onchange = async () => {
       const f = inp.files[0]; if (!f) return; const tr = inp.closest('tr');
-      try { const u = await uploadImage(f); $('[data-f="img_url"]', tr).value = u; $('[data-vprev]', tr).style.backgroundImage = `url('${u}')`; toast('อัปโหลดรูปตัวเลือกแล้ว'); } catch (e) { fail(e); }
+      try { const u = await uploadImage(f, 'products'); $('[data-f="img_url"]', tr).value = u; $('[data-vprev]', tr).style.backgroundImage = `url('${u}')`; toast('อัปโหลดรูปตัวเลือกแล้ว'); } catch (e) { fail(e); }
       inp.value = '';
     }; });
   };
@@ -616,7 +715,7 @@ async function categories() {
   const n = {}; prods.forEach((p) => { n[p.category_id] = (n[p.category_id] || 0) + 1; });
   view().innerHTML = `<p class="muted" style="margin:0 0 16px">หมวดหมู่แสดงเป็นการ์ดสีบนหน้าแรก และเป็นตัวกรองในส่วน “สินค้าทั้งหมด” เรียงตามลำดับที่ตั้งไว้</p>
     ${cats.length ? `<div class="catlist">${cats.map((c) => `<div class="catcard ${c.active ? '' : 'off'}" style="${c.active ? '' : 'opacity:.55'}">
-      <span class="catcard__sw" style="background:${esc(c.color)}">${c.img_url ? `<img src="${esc(imgUrl(c.img_url))}" alt="">` : ''}</span>
+      <span class="catcard__sw">${c.img_url ? `<img src="${esc(imgUrl(c.img_url))}" alt="">` : ''}</span>
       <div class="grow"><b>${esc(c.name)}</b><div class="muted tiny">${esc(c.tagline || '')}</div><div class="muted tiny">/${esc(c.slug)} · ${n[c.id] || 0} สินค้า · ลำดับ ${c.sort}</div></div>
       <label class="switch" title="แสดงบนหน้าร้าน"><input type="checkbox" data-ctoggle="${c.id}" ${c.active ? 'checked' : ''}><span class="sr-only">แสดง</span></label>
       <button class="btn btn--sm" data-cedit="${c.id}">แก้ไข</button></div>`).join('')}</div>` : '<div class="card empty">ยังไม่มีหมวดหมู่</div>'}`;
@@ -645,11 +744,11 @@ function editCategory(c, count) {
     <section class="section"><h3>รูปประจำหมวด</h3><div id="cImg"></div></section>`,
     `${isNew ? '<span class="spacer"></span>' : '<button class="btn btn--danger spacer" id="delCat">ลบหมวด</button>'}<button class="btn" data-sheet-close>ยกเลิก</button><button class="btn btn--primary" id="saveCat">บันทึก</button>`);
   $$('#sheetFoot [data-sheet-close]').forEach((b) => b.addEventListener('click', closeSheet));
-  const getImg = imgPicker($('#cImg'), c.img_url, { hint: 'ภาพพื้นโปร่งใสจะลอยอยู่มุมการ์ดหมวด' });
+  const getImg = imgPicker($('#cImg'), c.img_url, { folder: 'categories', hint: 'ภาพพื้นโปร่งใสจะลอยอยู่มุมการ์ดหมวด' });
   const nm = $('#cName'), sl = $('#cSlug');
   if (isNew) nm.addEventListener('input', () => { if (!sl.dataset.touched) sl.value = nm.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40); });
   sl.addEventListener('input', () => { sl.dataset.touched = '1'; });
-  const paint = () => { $('#cPrev').style.background = $('#cColor').value; $('#cPrevName').textContent = nm.value || 'ชื่อหมวด'; $('#cPrevTag').textContent = $('#cTag').value; const u = getImg(); $('#cPrevImg').src = imgUrl(u); $('#cPrevImg').hidden = !u; };
+  const paint = () => { const pu = getImg(); $('#cPrev').style.background = pu ? `#141414 url("${imgUrl(pu)}") center/cover no-repeat` : '#141414'; $('#cPrevName').textContent = nm.value || 'ชื่อหมวด'; $('#cPrevTag').textContent = $('#cTag').value; const u = getImg(); $('#cPrevImg').src = imgUrl(u); $('#cPrevImg').hidden = true; };
   $$('#sheetBody input').forEach((el) => el.addEventListener('input', paint));
   const obs = new MutationObserver(paint); obs.observe($('#cImg [data-prev]'), { attributes: true, childList: true }); sheetCleanup = () => obs.disconnect();
   paint();
@@ -676,43 +775,148 @@ function editCategory(c, count) {
    ========================================================= */
 async function content() {
   const alive = liveRoute();
-  page('เนื้อหาหน้าเว็บ', 'ข้อความและรูปบนหน้าร้าน', '<a class="btn" href="../" target="_blank" rel="noopener">เปิดหน้าร้าน ↗</a>');
-  const { data, error } = await sb.from('content_blocks').select('*'); if (error) throw error;
+  page('แก้ไขหน้าเว็บ', 'หน้าเว็บ · ข้อความ รูปหน้าปก โลโก้ และแบนเนอร์', '<a class="btn" href="../" target="_blank" rel="noopener">เปิดหน้าร้าน ↗</a>');
+  const [{ data, error }, { data: prods, error: pe }] = await Promise.all([
+    sb.from('content_blocks').select('*'), sb.from('products').select('id,name,images,active,featured,sort').order('sort')]);
+  if (error) throw error; if (pe) throw pe;
   if (!alive()) return;
   const C = Object.fromEntries(data.map((b) => [b.key, b.data || {}]));
-  const h = C.hero || {}, pr = C.promo || {}, s = C.sections || {};
+  const h = C.hero || {}, pr = C.promo || {}, s = C.sections || {}, br = C.brand || {};
   const inp = (id, label, v, ph = '') => `<div class="field"><label for="${id}">${label}</label><input id="${id}" value="${esc(v || '')}" placeholder="${esc(ph)}"></div>`;
   const ta = (id, label, v, rows = 2) => `<div class="field"><label for="${id}">${label}</label><textarea id="${id}" rows="${rows}">${esc(v || '')}</textarea></div>`;
-  view().innerHTML = `<div class="cards" style="max-width:940px">
-    <section class="card stack"><div class="card__title">ส่วนเปิด (Hero + ฉาก 3 มิติ)<button class="btn btn--primary btn--sm" data-save="hero">บันทึก</button></div>
-      ${inp('h_eyebrow', 'ข้อความเล็กด้านบน', h.eyebrow)}${ta('h_title', 'หัวข้อใหญ่ (ขึ้นบรรทัดใหม่ได้)', h.title)}${ta('h_lead', 'คำโปรย', h.lead, 3)}
-      <div class="grid2">${inp('h_cta1', 'ปุ่มหลัก', h.cta_primary)}${inp('h_cta2', 'ปุ่มรอง', h.cta_secondary)}</div>
-      ${ta('h_marquee', 'ข้อความวิ่ง (บรรทัดละ 1 ข้อความ)', (h.marquee || []).join('\n'), 4)}
-      <p class="muted tiny" style="margin:0">สินค้าที่ลอยในฉาก 3 มิติ = สินค้าที่ติดดาว “แนะนำ” (สูงสุด 8 ชิ้น) ตั้งได้ที่เมนูสินค้า</p></section>
-    <section class="card stack"><div class="card__title">แบนเนอร์โปรโมชัน<button class="btn btn--primary btn--sm" data-save="promo">บันทึก</button></div>
-      <div class="grid2">${inp('p_eyebrow', 'ข้อความเล็ก', pr.eyebrow)}<div class="field"><label for="p_color">สีพื้นแบนเนอร์</label><input type="color" id="p_color" value="${esc(pr.color || '#FF3D7F')}"></div></div>
-      ${ta('p_title', 'หัวข้อ', pr.title)}${ta('p_text', 'คำอธิบาย', pr.text)}${inp('p_cta', 'ปุ่ม', pr.cta)}
-      <div class="lbl">รูปแบนเนอร์</div><div id="pImg"></div><p class="muted tiny" style="margin:0">ล้างหัวข้อให้ว่างเพื่อซ่อนแบนเนอร์</p></section>
-    <section class="card stack"><div class="card__title">หัวข้อของแต่ละส่วน<button class="btn btn--primary btn--sm" data-save="sections">บันทึก</button></div>
-      ${inp('s_cat', 'หมวดหมู่', s.categories_title)}
-      <div class="grid2">${inp('s_feat', 'แนะนำ · หัวข้อ', s.featured_title)}${inp('s_feat2', 'แนะนำ · คำอธิบาย', s.featured_sub)}</div>
-      <div class="grid2">${inp('s_best', 'ขายดี · หัวข้อ', s.best_title)}${inp('s_best2', 'ขายดี · คำอธิบาย', s.best_sub)}</div>
-      <div class="grid2">${inp('s_new', 'มาใหม่ · หัวข้อ', s.new_title)}${inp('s_new2', 'มาใหม่ · คำอธิบาย', s.new_sub)}</div>
-      ${inp('s_all', 'สินค้าทั้งหมด', s.all_title)}</section>
-  </div>`;
-  const getPromo = imgPicker($('#pImg'), pr.img_url, { hint: 'แนะนำรูปถ่ายแนวนอนหรือจัตุรัส กว้าง 1200px ขึ้นไป' });
+  const TABS = [['hero', 'หน้าปก (Hero)'], ['marquee', 'แถบข้อความวิ่ง'], ['promo', 'แบนเนอร์โปรโมชัน'], ['sections', 'หัวข้อแต่ละส่วน'], ['brand', 'โลโก้ & แชร์ลิงก์']];
+  const tab = (sessionStorage.getItem('cms-tab') || 'hero');
+  const mode = h.mode || '3d';
+  const MODES = [['3d', 'สินค้าลอย 3 มิติ', 'พื้นขาว รูปสินค้าหมุนตามการเลื่อนจอ'], ['image', 'รูปหน้าปกเต็มจอ', 'ใช้รูปของร้านเป็นหน้าปก ไม่มีฉาก 3 มิติ'], ['both', 'รูปหน้าปก + สินค้า 3 มิติ', 'รูปเป็นพื้นหลัง สินค้าลอยอยู่ด้านหน้า']];
+  let picked = (h.items || []).filter((id) => prods.some((p) => p.id === id));
+
+  view().innerHTML = `<div class="cms">
+    <nav class="cms__nav" role="tablist">${TABS.map(([k, n]) => `<button role="tab" data-ct="${k}" aria-selected="${k === tab}">${n}</button>`).join('')}</nav>
+    <div class="cms__body">
+      <section class="card stack" data-panel="hero">
+        <div class="card__title">หน้าปก (Hero)<button class="btn btn--primary btn--sm" data-save="hero">บันทึกหน้าปก</button></div>
+        <div class="lbl">รูปแบบหน้าปก</div>
+        <div class="modes">${MODES.map(([k, n, d]) => `<label class="mode"><input type="radio" name="hMode" value="${k}" ${mode === k ? 'checked' : ''}><b>${n}</b><small>${d}</small></label>`).join('')}</div>
+        <div class="hprev" id="hPrev"><div class="hprev__shade"></div><div class="hprev__copy"><small id="hpEyebrow"></small><b id="hpTitle"></b><span class="hprev__btn">ช้อปเลย →</span></div><div class="hprev__cards" id="hpCards"><i></i><i></i><i></i></div></div>
+        <div data-cover class="stack">
+          <div class="grid2"><div><div class="lbl">รูปหน้าปก · คอมพิวเตอร์</div><div id="hCover"></div></div>
+            <div><div class="lbl">รูปหน้าปก · มือถือ (ไม่บังคับ)</div><div id="hCoverM"></div></div></div>
+          <div class="grid2"><div class="field"><label for="hDim">ความเข้มของแผ่นทับรูป <b id="hDimV">${h.cover_dim ?? 55}%</b></label><input type="range" id="hDim" min="0" max="90" step="5" value="${h.cover_dim ?? 55}"><small>ช่วยให้ตัวหนังสืออ่านง่ายบนรูป</small></div>
+            <div class="field"><label>สีตัวหนังสือบนรูป</label><div class="radios"><label><input type="radio" name="hTone" value="dark" ${h.tone !== 'light' ? 'checked' : ''}>สีเข้ม <small>(รูปโทนสว่าง)</small></label><label><input type="radio" name="hTone" value="light" ${h.tone === 'light' ? 'checked' : ''}>สีขาว <small>(รูปโทนมืด)</small></label></div></div></div>
+        </div>
+        ${inp('h_eyebrow', 'ข้อความเล็กด้านบน', h.eyebrow)}${ta('h_title', 'หัวข้อใหญ่ (ขึ้นบรรทัดใหม่ได้)', h.title)}${ta('h_lead', 'คำโปรย', h.lead, 3)}
+        <div class="grid2">${inp('h_cta1', 'ปุ่มหลัก', h.cta_primary)}${inp('h_cta2', 'ปุ่มรอง', h.cta_secondary)}</div>
+        <div class="lbl">สีตัวหนังสือหน้าปก <span class="muted tiny">ติ๊ก “อัตโนมัติ” = ใช้สีตามธีมและสีตัวหนังสือบนรูปด้านบน</span></div>
+        <div class="fcolors">${[['title', 'หัวข้อใหญ่', '#0B0B0C'], ['lead', 'คำโปรย', '#4A4A50'], ['eyebrow', 'ข้อความเล็กด้านบน', '#8B6A2E'], ['ribbon', 'แถบประกาศ', '#3A3A3F']].map(([k, n, d]) => {
+          const c = (h.colors || {})[k] || '';
+          return `<div class="fcolor"><span>${n}</span><input type="color" id="fc_${k}" value="${esc(c || d)}" ${c ? '' : 'disabled'} aria-label="สี${n}">
+            <label class="tiny"><input type="checkbox" data-fauto="${k}" ${c ? '' : 'checked'}> อัตโนมัติ</label></div>`; }).join('')}</div>
+        <div data-items class="stack">
+          <div class="lbl">สินค้าในฉาก 3 มิติ <span class="muted tiny">เลือกได้สูงสุด 8 ชิ้น · ไม่เลือก = ใช้สินค้าที่ติดดาว “แนะนำ” อัตโนมัติ</span></div>
+          <div class="chips" id="hPicked"></div>
+          <p class="alertbox" id="hWarn" hidden></p>
+          <input type="search" id="hFind" placeholder="ค้นหาสินค้าเพื่อเพิ่ม" style="max-width:340px">
+          <div class="pickgrid" id="hProds"></div>
+        </div>
+      </section>
+
+      <section class="card stack" data-panel="marquee"><div class="card__title">แถบข้อความวิ่ง<button class="btn btn--primary btn--sm" data-save="marquee">บันทึก</button></div>
+        ${ta('h_marquee', 'ข้อความ (บรรทัดละ 1 ข้อความ)', (h.marquee || []).join('\n'), 6)}
+        <p class="muted tiny" style="margin:0">แสดงเป็นแถบสีเขียวนีออนใต้หน้าปก</p></section>
+
+      <section class="card stack" data-panel="promo"><div class="card__title">แบนเนอร์โปรโมชัน<button class="btn btn--primary btn--sm" data-save="promo">บันทึก</button></div>
+        <div class="grid2">${inp('p_eyebrow', 'ข้อความเล็ก', pr.eyebrow)}<div class="field"><label for="p_color">สีพื้นแบนเนอร์</label><input type="color" id="p_color" value="${esc(pr.color || '#FF3D7F')}"></div></div>
+        ${ta('p_title', 'หัวข้อ', pr.title)}${ta('p_text', 'คำอธิบาย', pr.text)}${inp('p_cta', 'ปุ่ม', pr.cta)}
+        <div class="lbl">รูปแบนเนอร์</div><div id="pImg"></div><p class="muted tiny" style="margin:0">ล้างหัวข้อให้ว่างเพื่อซ่อนแบนเนอร์</p></section>
+
+      <section class="card stack" data-panel="sections"><div class="card__title">หัวข้อของแต่ละส่วน<button class="btn btn--primary btn--sm" data-save="sections">บันทึก</button></div>
+        ${inp('s_cat', 'หมวดหมู่', s.categories_title)}
+        <div class="grid2">${inp('s_feat', 'แนะนำ · หัวข้อ', s.featured_title)}${inp('s_feat2', 'แนะนำ · คำอธิบาย', s.featured_sub)}</div>
+        <div class="grid2">${inp('s_best', 'ขายดี · หัวข้อ', s.best_title)}${inp('s_best2', 'ขายดี · คำอธิบาย', s.best_sub)}</div>
+        <div class="grid2">${inp('s_new', 'มาใหม่ · หัวข้อ', s.new_title)}${inp('s_new2', 'มาใหม่ · คำอธิบาย', s.new_sub)}</div>
+        ${inp('s_all', 'สินค้าทั้งหมด', s.all_title)}
+        <p class="muted tiny" style="margin:0">รูปของการ์ดหมวดหมู่แก้ที่เมนู <a href="#/categories">หมวดหมู่</a> · รูปสินค้าแก้ที่เมนู <a href="#/products">สินค้า &amp; สต็อก</a></p></section>
+
+      <section class="card stack" data-panel="brand"><div class="card__title">โลโก้ & รูปตอนแชร์ลิงก์<button class="btn btn--primary btn--sm" data-save="brand">บันทึก</button></div>
+        <div class="grid2"><div><div class="lbl">โลโก้บนแถบเมนู</div><div id="bLogo"></div></div>
+          <div><div class="lbl">รูปตอนแชร์ลิงก์ (LINE / Facebook)</div><div id="bOg"></div></div></div>
+        <p class="muted tiny" style="margin:0">ไม่มีโลโก้ = แสดงชื่อร้านเป็นตัวหนังสือ (ชื่อร้านแก้ที่ <a href="#/settings">ตั้งค่าร้าน</a>) · ไอคอนแอปบนมือถืออยู่ในไฟล์ icons/ ของเว็บ</p></section>
+    </div></div>`;
+
+  const showTab = (k) => { sessionStorage.setItem('cms-tab', k); $$('[data-ct]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.ct === k))); $$('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== k; }); };
+  $$('[data-ct]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.ct)));
+  showTab(tab);
+
+  const getCover = imgPicker($('#hCover'), h.cover_url, { folder: 'site', hint: 'แนวนอน 1920×1080 ขึ้นไป' });
+  const getCoverM = imgPicker($('#hCoverM'), h.cover_mobile_url, { folder: 'site', hint: 'แนวตั้ง 1080×1600 · ว่าง = ใช้รูปคอม' });
+  const getPromo = imgPicker($('#pImg'), pr.img_url, { folder: 'site', hint: 'แนวนอนหรือจัตุรัส กว้าง 1200px ขึ้นไป' });
+  const getLogo = imgPicker($('#bLogo'), br.logo_url, { folder: 'site', hint: 'PNG/SVG พื้นโปร่งใส สูงอย่างน้อย 80px' });
+  const getOg = imgPicker($('#bOg'), br.og_image, { folder: 'site', hint: '1200×630' });
   const v = (id) => ($('#' + id) ? $('#' + id).value.trim() : '');
-  const build = {
-    hero: () => ({ eyebrow: v('h_eyebrow'), title: v('h_title'), lead: v('h_lead'), cta_primary: v('h_cta1'), cta_secondary: v('h_cta2'), marquee: v('h_marquee').split('\n').map((x) => x.trim()).filter(Boolean) }),
-    promo: () => ({ eyebrow: v('p_eyebrow'), title: v('p_title'), text: v('p_text'), cta: v('p_cta'), color: $('#p_color').value, img_url: getPromo() }),
-    sections: () => ({ categories_title: v('s_cat'), featured_title: v('s_feat'), featured_sub: v('s_feat2'), best_title: v('s_best'), best_sub: v('s_best2'), new_title: v('s_new'), new_sub: v('s_new2'), all_title: v('s_all') })
+  const radio = (n) => ($(`input[name="${n}"]:checked`) || {}).value;
+
+  // ตัวอย่างหน้าปก
+  const paintPrev = () => {
+    const m = radio('hMode'), cov = getCover(), dim = +$('#hDim').value / 100, light = radio('hTone') === 'light';
+    $('#hDimV').textContent = $('#hDim').value + '%';
+    $('[data-cover]').hidden = m === '3d'; $('[data-items]').hidden = m === 'image';
+    const pv = $('#hPrev');
+    pv.style.backgroundImage = m !== '3d' && cov ? `url("${imgUrl(cov)}")` : 'none';
+    pv.classList.toggle('light', m !== '3d' && light);
+    $('.hprev__shade', pv).style.opacity = m !== '3d' && cov ? dim : 0;
+    $('#hpCards').hidden = m === 'image';
+    $('#hpEyebrow').textContent = v('h_eyebrow'); $('#hpTitle').innerHTML = esc(v('h_title')).replace(/\n/g, '<br>');
+    $('#hpTitle').style.color = fcolor('title'); $('#hpEyebrow').style.color = fcolor('eyebrow');
+    const imgs = (picked.length ? picked.map((id) => prods.find((p) => p.id === id)) : prods.filter((p) => p.featured && p.active)).filter(Boolean).slice(0, 3);
+    $$('#hpCards i').forEach((el, i) => { const u = imgs[i] && imgs[i].images?.[0]; el.style.backgroundImage = u ? `url("${imgUrl(u)}")` : 'none'; });
+  };
+  const fcolor = (k) => { const auto = $(`[data-fauto="${k}"]`); return auto && !auto.checked ? $('#fc_' + k).value : ''; };
+  $$('[data-fauto]').forEach((cb) => cb.addEventListener('change', () => { $('#fc_' + cb.dataset.fauto).disabled = cb.checked; paintPrev(); }));
+  $$('input[name="hMode"],input[name="hTone"],#hDim,#h_eyebrow,#h_title,.fcolor input[type=color]').forEach((el) => el.addEventListener('input', paintPrev));
+  const obs = new MutationObserver(paintPrev); obs.observe($('#hCover [data-prev]'), { attributes: true });
+
+  // เลือกสินค้าในฉาก 3 มิติ
+  const ext3d = (p) => { const u = (p.images || [])[0] || ''; return /^https?:/i.test(u) && !/\.supabase\.co\//.test(u); };
+  const paintItems = () => {
+    $('#hPicked').innerHTML = picked.length ? picked.map((id, i) => { const p = prods.find((x) => x.id === id);
+      return `<span class="chip"><b>${i + 1}</b> ${esc(p ? p.name : '?')}<button type="button" data-mvp="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="เลื่อนขึ้น">←</button><button type="button" data-mvp="${i}" data-d="1" ${i < picked.length - 1 ? '' : 'disabled'} aria-label="เลื่อนลง">→</button><button type="button" data-unp="${esc(id)}" aria-label="เอาออก">✕</button></span>`; }).join('')
+      : '<span class="muted tiny">ยังไม่ได้เลือก · ใช้สินค้าแนะนำอัตโนมัติ</span>';
+    const bad = picked.map((id) => prods.find((x) => x.id === id)).filter((p) => p && ext3d(p));
+    $('#hWarn').hidden = !bad.length;
+    $('#hWarn').innerHTML = `${bad.map((p) => esc(p.name)).join(', ')} ใช้รูปจาก URL ภายนอก — หน้าร้านจะดึงรูปผ่าน <b>img.php</b> ให้อัตโนมัติ (ต้องเปิดเว็บผ่าน XAMPP) โหลดช้ากว่ารูปในคลังเล็กน้อย ถ้าเว็บต้นทางลบรูปหรือบล็อก รูปจะหาย · อัปโหลดเข้าคลังจะเสถียรที่สุด`;
+    const q = v('hFind').toLowerCase();
+    $('#hProds').innerHTML = prods.filter((p) => p.active && (!q || p.name.toLowerCase().includes(q))).map((p) => `<button type="button" class="pick ${picked.includes(p.id) ? 'on' : ''}" data-pp="${esc(p.id)}">
+      <span style="background-image:url('${esc(imgUrl(p.images?.[0] || ''))}')"></span>${esc(p.name)}${p.featured ? ' ★' : ''}${ext3d(p) ? '<i class="warn" title="รูปจาก URL ภายนอก · หน้าร้านดึงผ่าน img.php ให้อัตโนมัติ">รูปจาก URL</i>' : ''}</button>`).join('');
+    $$('[data-pp]').forEach((b) => b.addEventListener('click', () => { const id = b.dataset.pp;
+      if (picked.includes(id)) picked = picked.filter((x) => x !== id); else if (picked.length >= 8) return toast('เลือกได้สูงสุด 8 ชิ้น', true); else picked.push(id);
+      paintItems(); }));
+    $$('[data-unp]').forEach((b) => b.addEventListener('click', () => { picked = picked.filter((x) => x !== b.dataset.unp); paintItems(); }));
+    $$('[data-mvp]').forEach((b) => b.addEventListener('click', () => { const i = +b.dataset.mvp, j = i + +b.dataset.d; [picked[i], picked[j]] = [picked[j], picked[i]]; paintItems(); }));
+    paintPrev();
+  };
+  on('#hFind', 'input', paintItems);
+  paintItems();
+  sheetCleanup = null;
+
+  const patch = {
+    hero: () => ['hero', { mode: radio('hMode'), cover_url: getCover(), cover_mobile_url: getCoverM(), cover_dim: +$('#hDim').value, tone: radio('hTone'),
+      eyebrow: v('h_eyebrow'), title: v('h_title'), lead: v('h_lead'), cta_primary: v('h_cta1'), cta_secondary: v('h_cta2'), items: picked,
+      colors: { title: fcolor('title'), lead: fcolor('lead'), eyebrow: fcolor('eyebrow'), ribbon: fcolor('ribbon') } }],
+    marquee: () => ['hero', { marquee: v('h_marquee').split('\n').map((x) => x.trim()).filter(Boolean) }],
+    promo: () => ['promo', { eyebrow: v('p_eyebrow'), title: v('p_title'), text: v('p_text'), cta: v('p_cta'), color: $('#p_color').value, img_url: getPromo() }],
+    sections: () => ['sections', { categories_title: v('s_cat'), featured_title: v('s_feat'), featured_sub: v('s_feat2'), best_title: v('s_best'), best_sub: v('s_best2'), new_title: v('s_new'), new_sub: v('s_new2'), all_title: v('s_all') }],
+    brand: () => ['brand', { logo_url: getLogo(), og_image: getOg() }]
   };
   $$('[data-save]').forEach((b) => b.addEventListener('click', async () => {
-    const key = b.dataset.save; busy(b, true, 'บันทึก…');
-    const { error: er } = await sb.from('content_blocks').upsert({ key, data: build[key]() });
+    const [key, d] = patch[b.dataset.save]();
+    if (key === 'hero' && d.mode && d.mode !== '3d' && !d.cover_url) return toast('รูปแบบนี้ต้องใส่รูปหน้าปก (คอมพิวเตอร์) ก่อน', true);
+    busy(b, true, 'บันทึก…');
+    const data = { ...(C[key] || {}), ...d };
+    const { error: er } = await sb.from('content_blocks').upsert({ key, data });
     busy(b, false);
     if (er) return fail(er);
-    toast('บันทึกเนื้อหาแล้ว รีเฟรชหน้าร้านเพื่อดูผล');
+    C[key] = data;
+    toast('บันทึกแล้ว · รีเฟรชหน้าร้านเพื่อดูผล');
   }));
 }
 
@@ -721,32 +925,52 @@ async function content() {
    ========================================================= */
 async function media() {
   const alive = liveRoute();
-  page('คลังรูปภาพ', 'Supabase Storage · bucket “media”');
-  const { data, error } = await sb.storage.from('media').list('uploads', { limit: 300, sortBy: { column: 'created_at', order: 'desc' } });
-  if (error) throw error;
+  const st = (media.st = media.st || { tab: 'site', q: '' });
+  page('คลังรูปภาพ', 'หน้าเว็บ · แยกรูปตามประเภท และดูว่ารูปถูกใช้อยู่ที่ไหน');
+  const [items, use] = await Promise.all([listMedia(), mediaUsage()]);
   if (!alive()) return;
-  const files = data.filter((f) => f.id);
-  view().innerHTML = `<label class="drop" id="drop" style="display:block;margin-bottom:18px;cursor:pointer"><input type="file" accept="image/*" multiple hidden id="mFiles">
-      <b>ลากรูปมาวาง หรือคลิกเพื่ออัปโหลด</b><div class="tiny">PNG, JPG, WebP ไม่เกิน 5 MB · รูปใหญ่จะถูกย่อเป็น WebP อัตโนมัติ</div></label>
-    ${files.length ? `<div class="media-grid">${files.map((f) => {
-      const url = sb.storage.from('media').getPublicUrl('uploads/' + f.name).data.publicUrl;
-      return `<div class="media-item"><div class="media-item__img" style="background-image:url('${esc(url)}')"></div>
-        <div class="media-item__meta"><b title="${esc(f.name)}">${esc(f.name)}</b><span class="muted">${Math.round((f.metadata?.size || 0) / 1024)} KB · ${fmtDate(f.created_at)}</span>
-        <div class="row"><button class="btn btn--sm" data-copy="${esc(url)}">คัดลอก URL</button><button class="btn btn--sm btn--danger" data-rm="${esc(f.name)}">ลบ</button></div></div></div>`;
-    }).join('')}</div>` : '<div class="card empty">ยังไม่มีรูปที่อัปโหลด</div>'}`;
-  const up = async (list) => {
-    let ok = 0; for (const f of list) { try { await uploadImage(f); ok++; } catch (e) { fail(e); } }
-    if (ok) { toast(`อัปโหลด ${ok} รูปแล้ว`); media().catch(fail); }
+  const TABS = [...Object.entries(MEDIA_TYPES), ['unused', 'ยังไม่ได้ใช้'], ['all', 'ทั้งหมด']];
+  const typeOf = (m) => mediaType(m, use);
+  const inTab = (m) => st.tab === 'all' || (st.tab === 'unused' ? !use.has(m.url) : typeOf(m) === st.tab);
+  const list = items.filter((m) => inTab(m) && (!st.q || m.name.toLowerCase().includes(st.q) || (use.get(m.url) || []).some((u) => u.label.toLowerCase().includes(st.q))));
+  const upType = MEDIA_TYPES[st.tab] ? st.tab : 'site';
+  view().innerHTML = `<div class="toolbar">
+      <div class="tabs" role="tablist">${TABS.map(([k, n]) => `<button role="tab" data-mt="${k}" aria-selected="${st.tab === k}">${n}<span class="n">${items.filter((m) => k === 'all' || (k === 'unused' ? !use.has(m.url) : typeOf(m) === k)).length}</span></button>`).join('')}</div>
+      <input type="search" id="mq" placeholder="ค้นหาชื่อไฟล์ หรือที่ใช้งาน" value="${esc(st.q)}" aria-label="ค้นหารูป"></div>
+    <label class="drop" id="drop" style="display:block;margin-bottom:18px;cursor:pointer"><input type="file" accept="image/*" multiple hidden id="mFiles">
+      <b>ลากรูปมาวาง หรือคลิกเพื่ออัปโหลดเป็น “${esc(MEDIA_TYPES[upType])}”</b>
+      <div class="tiny">${st.tab === 'all' || st.tab === 'unused' ? 'เลือกแท็บประเภทก่อนเพื่ออัปโหลดเข้าหมวดนั้น · ' : ''}PNG, JPG, WebP ไม่เกิน 5 MB · รูปใหญ่ย่อเป็น WebP อัตโนมัติ</div></label>
+    ${list.length ? `<div class="media-grid">${list.map((m) => {
+      const u = use.get(m.url) || [], t = typeOf(m);
+      return `<div class="media-item"><div class="media-item__img" style="background-image:url('${esc(m.url)}')"><span class="mtype mtype--${t}">${esc(MEDIA_TYPES[t] || 'ยังไม่ระบุประเภท')}</span></div>
+        <div class="media-item__meta"><b title="${esc(m.name)}">${esc(m.name)}</b>
+          <div class="uses">${u.length ? u.map((x) => `<span>${esc(x.label)}</span>`).join('') : '<span class="none">ยังไม่ได้ใช้</span>'}</div>
+          <span class="muted tiny">${Math.round(m.size / 1024)} KB · ${fmtDate(m.created_at)}</span>
+          <div class="row"><label class="btn btn--sm" title="อัปโหลดรูปใหม่แทนรูปนี้ทุกที่ที่ใช้"><input type="file" accept="image/*" hidden data-rep="${esc(m.url)}" data-f="${esc(MEDIA_TYPES[t] ? t : 'site')}">เปลี่ยนรูป</label>
+            <button class="btn btn--sm" data-copy="${esc(m.url)}">คัดลอก URL</button>
+            <button class="btn btn--sm btn--danger" data-rm="${esc(m.path)}" data-used="${u.length}">ลบ</button></div></div></div>`;
+    }).join('')}</div>` : '<div class="card empty">ไม่มีรูปในหมวดนี้</div>'}`;
+  $$('[data-mt]').forEach((b) => b.addEventListener('click', () => { st.tab = b.dataset.mt; media().catch(fail); }));
+  let t; on('#mq', 'input', (e) => { clearTimeout(t); t = setTimeout(() => { st.q = e.target.value.trim().toLowerCase(); media().catch(fail).then(() => { const i = $('#mq'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }); }, 300); });
+  const up = async (fl) => {
+    let ok = 0; for (const f of fl) { try { await uploadImage(f, upType); ok++; } catch (e) { fail(e); } }
+    if (ok) { toast(`อัปโหลด ${ok} รูปเป็น${MEDIA_TYPES[upType]}แล้ว`); media().catch(fail); }
   };
-  $('#mFiles').addEventListener('change', (e) => up([...e.target.files]));
+  on('#mFiles', 'change', (e) => up([...e.target.files]));
   const drop = $('#drop');
   ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', (e) => up([...e.dataTransfer.files]));
   $$('[data-copy]').forEach((b) => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(b.dataset.copy); toast('คัดลอก URL แล้ว'); } catch { toast('คัดลอกไม่ได้', true); } }));
+  $$('[data-rep]').forEach((inp) => inp.addEventListener('change', async () => {
+    const f = inp.files[0]; if (!f) return;
+    try { toast('กำลังอัปโหลดและเปลี่ยนรูป…'); const nu = await uploadImage(f, inp.dataset.f); await replaceEverywhere(inp.dataset.rep, nu); toast('เปลี่ยนรูปทุกที่ที่ใช้แล้ว'); media().catch(fail); }
+    catch (e) { fail(e); }
+  }));
   $$('[data-rm]').forEach((b) => b.addEventListener('click', async () => {
-    if (!confirm('ลบรูปนี้? ถ้ารูปถูกใช้อยู่ในสินค้าหรือเนื้อหา รูปจะหายไปจากหน้าร้าน')) return;
-    const { error: er } = await sb.storage.from('media').remove(['uploads/' + b.dataset.rm]);
+    const used = +b.dataset.used;
+    if (!confirm(used ? `รูปนี้ถูกใช้อยู่ ${used} ที่ ถ้าลบ รูปจะหายจากหน้าร้าน\nยืนยันลบ?` : 'ลบรูปนี้?')) return;
+    const { error: er } = await sb.storage.from('media').remove([b.dataset.rm]);
     if (er) return fail(er); toast('ลบรูปแล้ว'); media().catch(fail);
   }));
 }

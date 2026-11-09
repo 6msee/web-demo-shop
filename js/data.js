@@ -8,7 +8,7 @@ const P = (id, cat, name, description, images, sizes, extra = {}) => ({
 
 export const FALLBACK = {
   offline: true,
-  settings: { shop_name: 'FIZZ & CO.', line_oa_id: '', announcement: 'ซื้อ 3 ชิ้นต่างแบบ ลด 10% · ส่งฟรีเมื่อครบ ฿300',
+  settings: { shop_name: 'MARBO98', line_oa_id: '', announcement: 'ซื้อ 3 ชิ้นต่างแบบ ลด 10% · ส่งฟรีเมื่อครบ ฿300',
     bundle_min_items: 3, bundle_discount: 0.1, free_ship_min: 300, ship_fee: 40,
     footer_note: 'เว็บไซต์ตัวอย่างเพื่อการศึกษา · ภาพสินค้า LOVEZA! เป็นของเจ้าของแบรนด์' },
   content: {

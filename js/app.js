@@ -1,12 +1,12 @@
 // ฟีเจอร์ระดับแอป: โหมดสว่าง/มืด, ติดตั้งเป็นแอป (PWA), service worker
-import { toast } from './fx.js?v=20261109.4';
+import { toast } from './fx.js?v=20261109.15';
 
 export function initTheme() {
   const btn = document.getElementById('themeBtn');
   const meta = document.querySelector('meta[name=theme-color]');
   const apply = (t) => {
     document.documentElement.dataset.theme = t;
-    if (meta) meta.content = t === 'light' ? '#FFFFFF' : '#0E0E10';
+    if (meta) meta.content = t === 'light' ? '#FFFFFF' : '#0B0B0C';
     btn.setAttribute('aria-pressed', String(t === 'light'));
     btn.title = t === 'light' ? 'เปลี่ยนเป็นโหมดมืด' : 'เปลี่ยนเป็นโหมดสว่าง';
   };

@@ -67,8 +67,10 @@ export function toast(msg) {
 }
 
 export function flyToCart(fromEl, src) {
-  const target = document.getElementById('cartBtn');
-  const count = document.getElementById('cartCount');
+  const tab = document.getElementById('tabCart');
+  const useTab = tab && tab.offsetParent !== null;
+  const target = useTab ? tab : document.getElementById('cartBtn');
+  const count = useTab ? tab : document.getElementById('cartCount');
   const bump = () => { count.classList.remove('bump'); void count.offsetWidth; count.classList.add('bump'); };
   if (!fromEl || reduce || !src) { bump(); return; }
   const a = fromEl.getBoundingClientRect(), b = target.getBoundingClientRect();
