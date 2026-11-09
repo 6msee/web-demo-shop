@@ -970,3 +970,30 @@ html:not([data-theme="light"]) .card:hover .card__media,html:not([data-theme="li
 .bigword span:nth-child(2){-webkit-text-stroke-color:rgba(231,228,221,.05)}
 .block__head .h2::before,#categories .h2::before,#featured .h2::before,#best .h2::before,#new .h2::before,#shop .h2::before{color:var(--gold)!important}
 [data-theme="light"] .block__head .h2::before{color:var(--accent-text)!important}
+
+/* =====================================================================
+   ป้ายสินค้าหน้าปก: ไม่มีกรอบ — ตัวหนังสือลอย เส้นทองบาง
+   ===================================================================== */
+.spot,.tone-light .spot{background:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:none!important;
+  border:0!important;border-radius:0;padding:0;gap:10px;isolation:isolate}
+.spot__meta{gap:14px;font-size:11px;letter-spacing:.22em}
+.spot__meta .spot__cat::before{width:18px;height:1px;border-radius:0;box-shadow:none;background:var(--gold)}
+.spot__no::before{content:"";display:inline-block;width:18px;height:1px;margin-right:14px;vertical-align:middle;background:currentColor;opacity:.5}
+.spot__name{font-weight:200;font-size:clamp(28px,3vw,44px);letter-spacing:-.015em;line-height:1.08}
+.spot__row{gap:22px;margin-top:6px}
+.spot__price{font:400 20px var(--font);background:none!important;padding:0;letter-spacing:.01em}
+.spot__btn,.tone-light .spot__btn,.spot__btn:hover{height:auto;padding:0 0 4px;border-radius:0;background:none!important;color:inherit;
+  font:400 14px var(--font);letter-spacing:.06em;position:relative}
+.spot__btn::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--gold);transform-origin:left;transition:transform .45s var(--ease)}
+.spot__btn:hover::after{transform:scaleX(.35)}
+.spot__btn span,.tone-light .spot__btn span{color:var(--gold)}
+.spot__btn:hover span{color:var(--gold);transform:translateX(5px)}
+
+/* บนรูปหน้าปก: ตัวหนังสือขาว + เงาไล่สีจางๆ ด้านล่างแทนกรอบ */
+.has-cover .spot{color:#fff}
+.has-cover .spot__meta{color:rgba(255,255,255,.7)}
+.has-cover .spot__meta .spot__cat{color:var(--gold-hi)}
+.has-cover .spot::before{content:"";position:absolute;z-index:-1;left:50%;bottom:-60px;width:min(1100px,140vw);height:320px;transform:translateX(-50%);
+  background:radial-gradient(50% 60% at 50% 70%,rgba(0,0,0,.6),rgba(0,0,0,0));pointer-events:none}
+.has-cover .spot__name{text-shadow:0 2px 24px rgba(0,0,0,.35)}
+@media (max-width:760px){.spot__name{font-size:26px}.spot__row{gap:16px}}

@@ -1,7 +1,7 @@
 // ร้านค้า: หมวดหมู่ แนะนำ ขายดี มาใหม่ สินค้าทั้งหมด หน้ารายละเอียดสินค้า ตะกร้า และ checkout ผ่าน LINE
-import { LINE_OA_ID_FALLBACK } from './config.js?v=20261109.15';
-import { placeOrder } from './api.js?v=20261109.15';
-import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261109.15';
+import { LINE_OA_ID_FALLBACK } from './config.js?v=20261109.16';
+import { placeOrder } from './api.js?v=20261109.16';
+import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261109.16';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
