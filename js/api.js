@@ -1,6 +1,6 @@
 // ชั้นเชื่อมต่อ Supabase ที่หน้าร้านใช้ (อ่านแค็ตตาล็อก + อันดับขายดี + ส่งคำสั่งซื้อ)
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=20261120.8';
-import { FALLBACK } from './data.js?v=20261120.8';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=20261120.10';
+import { FALLBACK } from './data.js?v=20261120.10';
 
 let client = null;
 export function sb() {
@@ -61,6 +61,22 @@ export async function trackOrder(no, phone) {
   if (error) throw new Error('ตรวจสอบสถานะไม่สำเร็จ ลองใหม่อีกครั้ง');
   return data;
 }
+// ===== สต็อก: อ่านยอดล่าสุด + ติดตามการเปลี่ยนแปลงแบบเรียลไทม์ =====
+export async function fetchStock(ids) {
+  const c = sb(); if (!c || !ids.length) return [];
+  const { data, error } = await c.from('product_sizes').select('id,stock,active').in('id', ids);
+  if (error) throw error;
+  return data;
+}
+// เมื่อหลังบ้านรับเข้า/ตัดออก หรือมีคนสั่งซื้อ → หน้าร้านได้ยอดใหม่ทันทีโดยไม่ต้องรีเฟรช
+export function watchStock(onRow) {
+  const c = sb(); if (!c || !c.channel) return () => {};
+  const ch = c.channel('stock-live')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'product_sizes' }, (m) => m.new && onRow(m.new))
+    .subscribe();
+  return () => { try { c.removeChannel(ch); } catch { /* */ } };
+}
+
 export async function placeOrder(customer, items) {
   const { data, error } = await sb().rpc('place_order', { p_customer: customer, p_items: items });
   if (error) {

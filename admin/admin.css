@@ -463,3 +463,9 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--ink)}
 .navpin .row{display:flex;flex-wrap:wrap;gap:8px}
 .navpin__map{width:100%;height:220px;border:1px solid var(--line,#e5e5e5);border-radius:12px}
 @media print{.navpin .row,.navpin__map{display:none}}
+/* สต็อก: รับเข้า / ตัดออก */
+.recv select{height:38px;border-radius:8px;border:1px solid var(--line,#ddd);padding:0 8px;font:inherit;font-size:12.5px;min-width:150px;background:#fff}
+tr.is-issue .recv input{border-color:#E07A5F}
+tr.is-issue [data-in]{background:#FCEDE8;border-color:#E07A5F;color:#9A3A22}
+.lowset{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted,#777)}
+.lowset input{width:70px;height:34px;border-radius:8px;border:1px solid var(--line,#ddd);padding:0 8px;font:inherit}

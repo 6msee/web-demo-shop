@@ -1,10 +1,10 @@
 // ร้านค้า: หมวดหมู่ แนะนำ ขายดี มาใหม่ สินค้าทั้งหมด หน้ารายละเอียดสินค้า ตะกร้า และ checkout ผ่าน LINE
-import { LINE_OA_ID_FALLBACK } from './config.js?v=20261120.8';
-import { placeOrder, uploadSlip, trackOrder } from './api.js?v=20261120.8';
-import { promptpayPayload, renderQR, shrinkSlip } from './pay.js?v=20261120.8';
-import { LINE, inLineApp, initLine, sendOrderToChat, closeLine } from './line.js?v=20261120.8';
-import { initPin, getPin, clearPin, mapsLink } from './pin.js?v=20261120.8';
-import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261120.8';
+import { LINE_OA_ID_FALLBACK } from './config.js?v=20261120.10';
+import { placeOrder, uploadSlip, trackOrder, fetchStock, watchStock } from './api.js?v=20261120.10';
+import { promptpayPayload, renderQR, shrinkSlip } from './pay.js?v=20261120.10';
+import { LINE, inLineApp, initLine, sendOrderToChat, closeLine } from './line.js?v=20261120.10';
+import { initPin, getPin, clearPin, mapsLink } from './pin.js?v=20261120.10';
+import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261120.10';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -31,6 +31,8 @@ export const productById = (id) => byId[id];
 export const categoryOf = (p) => catBy[p.category_id] || { name: '', color: '#999' };
 export const coverOf = (p) => p.images[0] || (p.sizes.find((z) => z.img_url) || {}).img_url || categoryOf(p).img_url || '';
 const avail = (z) => z.stock == null || z.stock > 0;
+let LOW = 10; // เกณฑ์ "ใกล้หมด" (ตั้งในหลังบ้าน)
+const leftOf = (p) => (p.sizes.every((z) => z.stock != null) ? p.sizes.reduce((a, z) => a + Math.max(0, z.stock), 0) : null);
 const firstAvail = (p) => Math.max(0, p.sizes.findIndex(avail));
 const minPrice = (p) => Math.min(...p.sizes.map((z) => z.price));
 const isNew = (p) => newIds.has(p.id);
@@ -43,8 +45,8 @@ export function priceLabel(p) {
 function cardHTML(p, { rank = 0, maxSold = 1 } = {}) {
   const c = categoryOf(p), z = p.sizes[firstAvail(p)], pct = salePct(z), sold = soldBy[p.id] || 0, img = coverOf(p);
   const out = !p.sizes.some(avail);
-  const badges = [p.badge ? `<span class="badge">${esc(p.badge)}</span>` : '', pct ? `<span class="badge badge--sale">-${pct}%</span>` : '', isNew(p) && !rank && !p.badge ? '<span class="badge badge--new">NEW</span>' : '', out ? '<span class="badge">สินค้าหมด</span>' : ''].join('');
-  return `<article class="card" data-id="${esc(p.id)}" style="--c:${esc(c.color)}" tabindex="0" aria-label="${esc(p.name)} ${priceLabel(p)}">
+  const badges = [p.badge ? `<span class="badge">${esc(p.badge)}</span>` : '', pct ? `<span class="badge badge--sale">-${pct}%</span>` : '', isNew(p) && !rank && !p.badge ? '<span class="badge badge--new">NEW</span>' : '', out ? '<span class="badge badge--out">สินค้าหมด</span>' : (leftOf(p) != null && leftOf(p) <= LOW ? `<span class="badge badge--low">เหลือ ${leftOf(p)} ชิ้น</span>` : '')].join('');
+  return `<article class="card${out ? ' is-out' : ''}" data-id="${esc(p.id)}" style="--c:${esc(c.color)}" tabindex="0" aria-label="${esc(p.name)} ${priceLabel(p)}">
     <div class="card__media"><div class="badges">${badges}</div>${img ? `<img src="${esc(img)}" alt="" loading="lazy" class="${isPhoto(img) ? 'photo' : ''}">` : ''}
       ${rank ? `<span class="rank__no">${String(rank).padStart(2, '0')}</span>` : ''}
       <button type="button" class="quick" data-quick aria-label="ใส่ ${esc(p.name)} ลงตะกร้า" ${out ? 'disabled' : ''}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>${out ? 'สินค้าหมด' : p.sizes.length > 1 ? 'เลือกตัวเลือก' : 'ใส่ตะกร้า'}</span></button></div>
@@ -76,6 +78,7 @@ export function initShop(cat) {
   initPin();
   CAT = cat;
   const s = cat.settings;
+  LOW = Number.isFinite(+s.low_stock) ? +s.low_stock : 10;
   RULES = { min: s.bundle_min_items, disc: s.bundle_discount, free: s.free_ship_min, fee: s.ship_fee };
   LINE_ID = s.line_oa_id || LINE_OA_ID_FALLBACK;
   byId = Object.fromEntries(cat.products.map((p) => [p.id, p]));
@@ -98,7 +101,13 @@ export function initShop(cat) {
 
   $('#cartBtn').addEventListener('click', openDrawer);
   $$('#drawer [data-close]').forEach((b) => b.addEventListener('click', closeDrawer));
-  $('#toCheckout').addEventListener('click', () => { if (count() > 0) step('form'); });
+  $('#toCheckout').addEventListener('click', async () => {
+    if (!count()) return;
+    const b = $('#toCheckout'); b.disabled = true;
+    const changed = await syncCartStock(false);
+    b.disabled = false;
+    if (!changed && count()) step('form');
+  });
   $('#backBtn').addEventListener('click', () => step('cart'));
   $('#stepForm').addEventListener('submit', submit);
   $$('[data-close-modal]').forEach((b) => b.addEventListener('click', closeModal));
@@ -126,6 +135,11 @@ export function initShop(cat) {
   $('#trackForm').addEventListener('submit', (e) => { e.preventDefault(); runTrack($('#tNo').value, $('#tPhone').value); });
   renderPayInfo();
   openTrackFromUrl();
+  if (!cat.offline) {
+    watchStock((row) => applyStock([row], true));
+    // กลับมาที่หน้าเว็บ (สลับแอป/แท็บ) → ดึงยอดสต็อกล่าสุดของในตะกร้า
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) syncCartStock(true); });
+  }
   addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePD(); closeModal(); closeDrawer(); } });
 }
 
@@ -221,8 +235,9 @@ function paintPD() {
   $('#pdPrice').textContent = fmt(z.price);
   $('#pdCompare').textContent = pct ? fmt(z.compare_at_price) : '';
   $('#pdSave').textContent = pct ? `ประหยัด ${pct}%` : '';
-  $$('[data-opt]').forEach((b) => b.setAttribute('aria-checked', String(+b.dataset.opt === pd.i)));
-  $('#pdStock').textContent = [z.unit_note, z.stock == null ? '' : z.stock === 0 ? 'สินค้าหมด' : z.stock <= 10 ? `เหลือ ${z.stock} ชิ้น` : 'มีสินค้า'].filter(Boolean).join(' · ');
+  $$('[data-opt]').forEach((b) => { b.setAttribute('aria-checked', String(+b.dataset.opt === pd.i)); b.disabled = !avail(p.sizes[+b.dataset.opt]); });
+  if (z.stock != null) pd.qty = Math.max(1, Math.min(pd.qty, z.stock || 1));
+  $('#pdStock').textContent = [z.unit_note, z.stock == null ? '' : z.stock === 0 ? 'สินค้าหมด' : z.stock <= LOW ? `เหลือ ${z.stock} ชิ้น` : `มีสินค้า ${z.stock} ชิ้น`].filter(Boolean).join(' · ');
   $('#pdQty').textContent = pd.qty;
   const out = !avail(z); $('#pdAdd').disabled = out; $('#pdAdd').textContent = out ? 'สินค้าหมด' : `ใส่ตะกร้า · ${fmt(z.price * pd.qty)}`;
 }
@@ -242,6 +257,45 @@ function setQty(k, n) {
   if (n <= 0) delete cart[k]; else cart[k] = Math.min(99, n); save(); renderCart();
 }
 const count = () => Object.values(cart).reduce((a, b) => a + b, 0);
+
+/* ---------- สต็อกสด ---------- */
+let restockT, pending = new Map();
+// อัปเดตยอดสต็อกในแค็ตตาล็อก แล้วปรับตะกร้าให้ไม่เกินของที่มี · คืน true ถ้าตะกร้าถูกปรับ
+function applyStock(rows, live) {
+  let touched = false;
+  rows.forEach((r) => { pending.set(r.id, r); });
+  const run = () => {
+    const bySize = {}; Object.values(byId).forEach((p) => p.sizes.forEach((z) => { bySize[z.id] = [p, z]; }));
+    const notes = []; let cartChanged = false, catChanged = false;
+    pending.forEach((r) => {
+      const hit = bySize[r.id]; if (!hit) return; const [p, z] = hit;
+      const stock = r.active === false ? 0 : r.stock;
+      if (z.stock !== stock) { z.stock = stock; catChanged = true; }
+      const k = `${p.id}|${z.id}`;
+      if (cart[k] && z.stock != null && cart[k] > z.stock) {
+        const name = `${p.name}${p.sizes.length > 1 ? ` · ${z.label}` : ''}`;
+        if (z.stock <= 0) { delete cart[k]; notes.push(`${name} หมดแล้ว · นำออกจากตะกร้า`); }
+        else { cart[k] = z.stock; notes.push(`${name} เหลือ ${z.stock} ชิ้น · ปรับจำนวนในตะกร้าแล้ว`); }
+        cartChanged = true;
+      }
+    });
+    pending.clear();
+    if (catChanged) { renderBento(); renderBest(); renderNew(); renderAll(); if (pd && $('#pd').classList.contains('open')) paintPD(); }
+    if (cartChanged) { save(); }
+    renderCart();
+    if (notes.length) { const n = $('#stockNote'); if (n) { n.innerHTML = notes.map((t) => `<li>${esc(t)}</li>`).join(''); n.hidden = false; } toast(notes[0]); }
+    return cartChanged;
+  };
+  if (live) { clearTimeout(restockT); restockT = setTimeout(run, 300); return false; }
+  touched = run(); return touched;
+}
+async function syncCartStock(quiet) {
+  if (CAT.offline) return false;
+  const ids = Object.keys(cart).map((k) => k.split('|')[1]);
+  if (!ids.length) return false;
+  try { return applyStock(await fetchStock(ids), false); }
+  catch (e) { if (!quiet) console.warn('เช็กสต็อกไม่สำเร็จ', e); return false; }
+}
 function totals() {
   const lines = Object.entries(cart).map(([k, q]) => {
     const [pid, sid] = k.split('|'); const p = byId[pid]; const s = p && p.sizes.find((z) => z.id === sid);
@@ -260,11 +314,12 @@ function renderCart() {
   const tc = document.getElementById('tabCount'); if (tc) { tc.textContent = count(); tc.hidden = !count(); }
   $('#lines').innerHTML = T.lines.map((l) => `<li class="line">
       <span class="line__img" style="--c:${esc(categoryOf(l.p).color)}"><img src="${esc(l.s.img_url || coverOf(l.p))}" alt=""></span>
-      <span class="line__info"><b>${esc(l.p.name)}</b><small>${l.p.sizes.length > 1 ? esc(l.s.label) + ' · ' : ''}${fmt(l.s.price)} × ${l.q} = ${fmt(l.sum)}</small></span>
-      <span class="qty"><button type="button" data-k="${esc(l.k)}" data-d="-1" aria-label="ลดจำนวน ${esc(l.p.name)}">−</button><span>${l.q}</span><button type="button" data-k="${esc(l.k)}" data-d="1" aria-label="เพิ่มจำนวน ${esc(l.p.name)}">+</button></span>
+      <span class="line__info"><b>${esc(l.p.name)}</b><small>${l.p.sizes.length > 1 ? esc(l.s.label) + ' · ' : ''}${fmt(l.s.price)} × ${l.q} = ${fmt(l.sum)}</small>${l.s.stock != null && l.s.stock <= LOW ? `<small class="line__left">${l.q >= l.s.stock ? 'ครบจำนวนที่มีแล้ว' : `เหลือ ${l.s.stock} ชิ้น`}</small>` : ''}</span>
+      <span class="qty"><button type="button" data-k="${esc(l.k)}" data-d="-1" aria-label="ลดจำนวน ${esc(l.p.name)}">−</button><span>${l.q}</span><button type="button" data-k="${esc(l.k)}" data-d="1" ${l.s.stock != null && l.q >= l.s.stock ? 'disabled' : ''} aria-label="เพิ่มจำนวน ${esc(l.p.name)}">+</button></span>
     </li>`).join('');
   $$('#lines [data-k]').forEach((b) => b.addEventListener('click', () => setQty(b.dataset.k, (cart[b.dataset.k] || 0) + +b.dataset.d)));
   $('#emptyMsg').hidden = T.lines.length > 0;
+  if (!T.lines.length) { const n = $('#stockNote'); if (n) n.hidden = true; }
   const hint = $('#bundleHint');
   hint.hidden = !(T.lines.length && T.kinds < RULES.min && RULES.disc > 0);
   hint.textContent = `เพิ่มสินค้าอีก ${RULES.min - T.kinds} แบบ รับส่วนลด ${Math.round(RULES.disc * 100)}% ทันที`;
@@ -315,7 +370,7 @@ async function submit(e) {
       : await placeOrder({ name: f.name, phone: f.phone, address: f.addr, note: f.note, slip_path: slipPath, lat: pin?.lat ?? '', lng: pin?.lng ?? '', landmark: (f.landmark || '').trim(),
           line_user_id: LINE.profile?.userId || '', line_name: LINE.profile?.displayName || '', line_picture: LINE.profile?.pictureUrl || '' },
         T.lines.map((l) => ({ size_id: l.s.id, qty: l.q })));
-  } catch (ex) { err.textContent = ex.message; err.hidden = false; btn.disabled = false; btn.innerHTML = label; return; }
+  } catch (ex) { err.textContent = ex.message; err.hidden = false; btn.disabled = false; btn.innerHTML = label; if (/มีไม่พอ|ไม่พร้อมขาย/.test(ex.message)) { syncCartStock(true).then(() => step('cart')); } return; }
   const msg = [`สั่งซื้อจาก ${CAT.settings.shop_name}`, `เลขที่ ${res.order_no}`]
     .concat(T.lines.map((l) => `• ${l.p.name}${l.p.sizes.length > 1 ? ` (${l.s.label})` : ''} × ${l.q} = ${fmt(l.sum)}`))
     .concat(Number(res.discount) ? [`ส่วนลด: −${fmt(res.discount)}`] : [])

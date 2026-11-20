@@ -1152,3 +1152,14 @@ html.pin-lock,html.pin-lock body{overflow:hidden}
 .pinsheet .leaflet-control-attribution{font-size:9px}
 .pinbox__addr{margin:8px 2px 0;font-size:12px;color:var(--gold)}
 .pinbox__use{display:block;width:100%;margin-top:2px;padding:10px 12px;border-radius:10px;border:1px solid rgba(214,180,108,.5);background:rgba(214,180,108,.08);color:var(--ink);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;line-height:1.45}
+
+/* ===== สต็อกสด ===== */
+.badge--low{background:#D6B46C!important;color:#0B0B0C!important;border-color:#D6B46C!important}
+.badge--out{background:#2A2A2F!important;color:#ECE9E2!important;border-color:#3A3A3F!important}
+.card.is-out .card__media img{filter:grayscale(1) brightness(.75);opacity:.7}
+.card.is-out .card__name,.card.is-out .price{opacity:.6}
+.stocknote{list-style:none;margin:0 0 12px;padding:12px 14px;border-radius:12px;border:1px solid rgba(214,180,108,.45);background:rgba(214,180,108,.08);display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink)}
+.stocknote[hidden]{display:none}
+.stocknote li::before{content:"• ";color:#D6B46C}
+.line__left{display:block;margin-top:2px;font-size:11.5px;color:#D6B46C}
+.qty button:disabled{opacity:.3;cursor:not-allowed}

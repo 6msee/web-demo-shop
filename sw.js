@@ -1,10 +1,10 @@
 // Service Worker: ทำให้ติดตั้งเป็นแอปได้ และเปิดหน้าร้านได้แม้เน็ตหลุด
 // เปลี่ยน VERSION ทุกครั้งที่อัปเดตไฟล์ เพื่อให้แอปโหลดของใหม่
-const VERSION = 'marbo-20261120.8';
+const VERSION = 'marbo-20261120.10';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png',
-  './vendor/three.module.min.js', './vendor/addons/RoomEnvironment.js', './vendor/supabase.js?v=20261120.8',
+  './vendor/three.module.min.js', './vendor/addons/RoomEnvironment.js', './vendor/supabase.js?v=20261120.10',
   './img/can-honey-lemon.webp', './img/can-lychee.webp', './img/can-kyoho-grape.webp', './img/lychee-ice.jpg'
 ];
 

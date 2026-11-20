@@ -1,5 +1,5 @@
 // MARBO98 — Content Studio (หลังบ้าน CMS) · Supabase Auth + Database + Storage + Realtime
-import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261120.8';
+import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261120.10';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s, r = document) => r.querySelector(s);
@@ -418,7 +418,7 @@ async function dashboard() {
   on('#xlsxBtn', 'click', async (e) => {
     const btn = e.currentTarget; busy(btn, true, 'กำลังสร้างไฟล์…');
     try {
-      await loadScript('../vendor/xlsx.mini.min.js?v=20261120.8');
+      await loadScript('../vendor/xlsx.mini.min.js?v=20261120.10');
       const X = window.XLSX, wb = X.utils.book_new();
       const sheet = (name, rows, widths) => { const ws = X.utils.aoa_to_sheet(rows); if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); X.utils.book_append_sheet(wb, ws, name); };
       const n2 = (v) => Math.round(Number(v) * 100) / 100;
@@ -828,35 +828,41 @@ function editCategory(c, count) {
    Stock: ตัดอัตโนมัติเมื่อขาย · คืนเมื่อยกเลิก · รับของเข้า · ประวัติ
    ========================================================= */
 const stockState = { tab: 'all', q: '', hidden: false };
-const MOVE = { sale: ['ขาย', 's-pending'], cancel: ['คืนจากยกเลิก', 's-paid'], restock: ['รับเข้า', 's-completed'], adjust: ['ปรับยอด', 's-review'] };
+const MOVE = { sale: ['ขาย', 's-pending'], cancel: ['คืนจากยกเลิก', 's-paid'], restock: ['รับเข้า', 's-completed'], adjust: ['ปรับยอด', 's-review'], issue: ['ตัดออก', 's-cancelled'] };
+const ADJ = [['in', 'รับเข้า (+)'], ['ชำรุด/เสียหาย', 'ตัดออก · ชำรุด/เสียหาย'], ['สูญหาย', 'ตัดออก · สูญหาย'], ['ขายหน้าร้าน', 'ตัดออก · ขายหน้าร้าน'],
+  ['แจก/ใช้เอง', 'ตัดออก · แจก/ใช้เอง'], ['คืนผู้ขาย', 'ตัดออก · คืนผู้ขาย'], ['อื่นๆ', 'ตัดออก · อื่นๆ']];
 async function stock() {
   const alive = liveRoute();
-  page('สต็อก & รับของเข้า', 'สินค้า · ระบบตัดสต็อกเมื่อลูกค้าสั่ง และคืนสต็อกเมื่อยกเลิกออเดอร์ให้อัตโนมัติ',
-    '<button class="btn btn--primary" id="bulkIn" disabled>บันทึกรับเข้าทั้งหมด</button>');
-  const [{ data: sizes, error }, { data: moves, error: e2 }] = await Promise.all([
+  page('สต็อก · รับเข้า / ตัดออก', 'สินค้า · ระบบตัดสต็อกเมื่อลูกค้าสั่ง และคืนสต็อกเมื่อยกเลิกออเดอร์ให้อัตโนมัติ · หน้าร้านเห็นยอดใหม่ทันที',
+    '<button class="btn btn--primary" id="bulkIn" disabled>บันทึกทั้งหมด</button>');
+  const [{ data: sizes, error }, { data: moves, error: e2 }, { data: setRow }] = await Promise.all([
     sb.from('product_sizes').select('id,label,stock,active,sort,product_id,products(name,images,active,sort)'),
-    sb.from('stock_moves').select('id,delta,balance,reason,note,created_at,size_id,product_sizes(label),products(name),orders(order_no)').order('created_at', { ascending: false }).limit(60)
+    sb.from('stock_moves').select('id,delta,balance,reason,note,created_at,size_id,product_sizes(label),products(name),orders(order_no)').order('created_at', { ascending: false }).limit(60),
+    sb.from('settings').select('low_stock').eq('id', 1).single()
   ]);
+  const LOWS = Number.isFinite(+setRow?.low_stock) ? +setRow.low_stock : 10;
   if (error) throw error; if (e2) throw e2;
   if (!alive()) return;
   const rows = sizes.filter((z) => z.products && (stockState.hidden || z.products.active))
     .sort((a, b) => (a.products.sort - b.products.sort) || a.products.name.localeCompare(b.products.name) || (a.sort - b.sort));
-  const kind = (z) => (z.stock == null ? 'inf' : z.stock === 0 ? 'out' : z.stock <= 10 ? 'low' : 'ok');
+  const kind = (z) => (z.stock == null ? 'inf' : z.stock <= 0 ? 'out' : z.stock <= LOWS ? 'low' : 'ok');
   const cnt = { all: rows.length, low: rows.filter((z) => kind(z) === 'low').length, out: rows.filter((z) => kind(z) === 'out').length, inf: rows.filter((z) => kind(z) === 'inf').length };
   const q = stockState.q.toLowerCase();
   const list = rows.filter((z) => (stockState.tab === 'all' || kind(z) === stockState.tab) && (!q || `${z.products.name} ${z.label}`.toLowerCase().includes(q)));
-  const TABS = [['all', 'ทั้งหมด'], ['low', 'ใกล้หมด (≤10)'], ['out', 'หมดแล้ว'], ['inf', 'ไม่จำกัด']];
+  const TABS = [['all', 'ทั้งหมด'], ['low', `ใกล้หมด (≤${LOWS})`], ['out', 'หมดแล้ว'], ['inf', 'ไม่จำกัด']];
   view().innerHTML = `<div class="toolbar">
       <div class="tabs" role="tablist">${TABS.map(([k, n]) => `<button role="tab" data-stab="${k}" aria-selected="${stockState.tab === k}">${n}<span class="n">${cnt[k]}</span></button>`).join('')}</div>
       <input type="search" id="sq" placeholder="ค้นหาสินค้า หรือตัวเลือก" value="${esc(stockState.q)}" aria-label="ค้นหาสินค้า">
-      <label class="switch"><input type="checkbox" id="sHidden" ${stockState.hidden ? 'checked' : ''}>รวมสินค้าที่ซ่อน</label></div>
+      <label class="switch"><input type="checkbox" id="sHidden" ${stockState.hidden ? 'checked' : ''}>รวมสินค้าที่ซ่อน</label>
+      <label class="lowset">แจ้งใกล้หมดเมื่อเหลือ ≤ <input type="number" id="lowStock" min="0" max="100000" value="${LOWS}" aria-label="เกณฑ์ใกล้หมด"> ชิ้น</label></div>
     <div class="stockgrid">
-    <div class="tablewrap"><table class="stocktable"><thead><tr><th>สินค้า</th><th class="num">คงเหลือ</th><th>รับเข้า (+)</th><th></th></tr></thead>
+    <div class="tablewrap"><table class="stocktable"><thead><tr><th>สินค้า</th><th class="num">คงเหลือ</th><th>รับเข้า / ตัดออก</th><th></th></tr></thead>
       <tbody>${list.length ? list.map((z) => { const k = kind(z), img = z.products.images?.[0];
         return `<tr data-row="${z.id}" class="${z.products.active ? '' : 'off'}">
           <td><div class="stk"><span class="thumb">${img ? `<img src="${esc(imgUrl(img))}" alt="">` : ''}</span><span><b>${esc(z.products.name)}</b><small class="muted">${esc(z.label)}${z.active ? '' : ' · ปิดขาย'}${z.products.active ? '' : ' · ซ่อน'}</small></span></div></td>
           <td class="num"><span class="status ${k === 'out' ? 's-cancelled' : k === 'low' ? 's-pending' : k === 'inf' ? 's-review' : 's-completed'}">${z.stock == null ? 'ไม่จำกัด' : z.stock}</span></td>
-          <td><div class="recv"><input type="number" min="1" step="1" inputmode="numeric" placeholder="0" data-qty="${z.id}" aria-label="จำนวนรับเข้า ${esc(z.products.name)} ${esc(z.label)}"><button type="button" class="btn btn--sm" data-in="${z.id}">รับเข้า</button></div></td>
+          <td><div class="recv"><select data-mode="${z.id}" aria-label="ประเภท ${esc(z.products.name)} ${esc(z.label)}"><option value="in">+ รับเข้า</option><optgroup label="ตัดออก (−)">${ADJ.slice(1).map(([v]) => `<option value="${esc(v)}" ${z.stock == null ? 'disabled' : ''}>− ${esc(v)}</option>`).join('')}</optgroup></select>
+            <input type="number" min="1" step="1" inputmode="numeric" placeholder="0" data-qty="${z.id}" aria-label="จำนวน ${esc(z.products.name)} ${esc(z.label)}"><button type="button" class="btn btn--sm" data-in="${z.id}">บันทึก</button></div></td>
           <td><button type="button" class="btn btn--sm" data-set="${z.id}" data-cur="${z.stock ?? ''}" data-name="${esc(z.products.name)} · ${esc(z.label)}">ตั้งยอด</button></td></tr>`; }).join('')
         : '<tr><td colspan="4" class="empty">ไม่พบสินค้า</td></tr>'}</tbody></table></div>
     <section class="card stack movelog"><div class="card__title">ความเคลื่อนไหวล่าสุด</div>
@@ -870,21 +876,47 @@ async function stock() {
   on('#sHidden', 'change', (e) => { stockState.hidden = e.target.checked; stock().catch(fail); });
   let t; on('#sq', 'input', (e) => { clearTimeout(t); t = setTimeout(() => { stockState.q = e.target.value.trim(); stock().catch(fail).then(() => { const i = $('#sq'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }); }, 300); });
   const qtyOf = (id) => parseInt(($(`[data-qty="${id}"]`) || {}).value, 10);
-  const refreshBulk = () => { const n = $$('[data-qty]').filter((i) => parseInt(i.value, 10) > 0).length; const b = $('#bulkIn'); if (b) { b.disabled = !n; b.textContent = n ? `บันทึกรับเข้า ${n} รายการ` : 'บันทึกรับเข้าทั้งหมด'; } };
+  const modeOf = (id) => ($(`[data-mode="${id}"]`) || {}).value || 'in';
+  const paintRow = (id) => { const m = modeOf(id), b = $(`[data-in="${id}"]`), r = $(`[data-row="${id}"]`);
+    if (b) b.textContent = m === 'in' ? 'รับเข้า' : 'ตัดออก'; if (r) r.classList.toggle('is-issue', m !== 'in'); };
+  const refreshBulk = () => { const n = $$('[data-qty]').filter((i) => parseInt(i.value, 10) > 0).length; const b = $('#bulkIn'); if (b) { b.disabled = !n; b.textContent = n ? `บันทึก ${n} รายการ` : 'บันทึกทั้งหมด'; } };
+  $$('[data-mode]').forEach((sel) => sel.addEventListener('change', () => paintRow(sel.dataset.mode)));
   $$('[data-qty]').forEach((i) => { i.addEventListener('input', refreshBulk); i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $(`[data-in="${i.dataset.qty}"]`).click(); } }); });
-  const receive = async (id, qty) => { const { error: er } = await sb.rpc('stock_receive', { p_size: id, p_qty: qty, p_note: null }); if (er) throw er; };
+  // รับเข้า (+) หรือ ตัดออก (−) พร้อมเหตุผล · ยอดเปลี่ยนที่ฐานข้อมูลแบบกันชนกัน และบันทึกประวัติทุกครั้ง
+  const apply = async (id, qty) => {
+    const m = modeOf(id);
+    const { error: er } = m === 'in'
+      ? await sb.rpc('stock_receive', { p_size: id, p_qty: qty, p_note: null })
+      : await sb.rpc('stock_issue', { p_size: id, p_qty: qty, p_note: m });
+    if (er) {
+      const msg = er.message || '';
+      if (msg.startsWith('insufficient')) throw new Error(`ตัดออกได้ไม่เกิน ${msg.split(':')[1] || 0} ชิ้น (ยอดคงเหลือ)`);
+      if (msg.startsWith('unlimited')) throw new Error('สินค้านี้ตั้งเป็น “ไม่จำกัด” · กด “ตั้งยอด” ใส่จำนวนจริงก่อนตัดออก');
+      throw er;
+    }
+    return m === 'in' ? `+${qty}` : `−${qty} (${m})`;
+  };
   $$('[data-in]').forEach((b) => b.addEventListener('click', async () => {
     const id = b.dataset.in, qty = qtyOf(id);
-    if (!(qty > 0)) { toast('ใส่จำนวนที่รับเข้า', true); $(`[data-qty="${id}"]`).focus(); return; }
+    if (!(qty > 0)) { toast('ใส่จำนวน', true); $(`[data-qty="${id}"]`).focus(); return; }
+    if (modeOf(id) !== 'in' && !confirm(`ยืนยันตัดสต็อกออก ${qty} ชิ้น (${modeOf(id)})?`)) return;
     busy(b, true, '…');
-    try { await receive(id, qty); toast(`รับเข้า +${qty} แล้ว`); stock().catch(fail); } catch (er) { busy(b, false); fail(er); }
+    try { const t2 = await apply(id, qty); toast(`บันทึกแล้ว ${t2}`); stock().catch(fail); } catch (er) { busy(b, false); toast(er.message || 'บันทึกไม่สำเร็จ', true); }
   }));
   on('#bulkIn', 'click', async (e) => {
     const todo = $$('[data-qty]').map((i) => [i.dataset.qty, parseInt(i.value, 10)]).filter(([, q]) => q > 0);
     if (!todo.length) return;
-    busy(e.currentTarget, true, 'กำลังบันทึก…');
-    let ok = 0; for (const [id, q] of todo) { try { await receive(id, q); ok++; } catch (er) { fail(er); } }
-    toast(`รับเข้าแล้ว ${ok} รายการ`); stock().catch(fail);
+    const outs = todo.filter(([id]) => modeOf(id) !== 'in').length;
+    if (outs && !confirm(`มีรายการตัดออก ${outs} รายการ ยืนยันบันทึกทั้งหมด?`)) return;
+    const bb = e.currentTarget; busy(bb, true, 'กำลังบันทึก…');
+    let ok = 0; const bad = [];
+    for (const [id, q] of todo) { try { await apply(id, q); ok++; } catch (er) { bad.push(er.message); } }
+    toast(bad.length ? `บันทึก ${ok} รายการ · ไม่สำเร็จ ${bad.length}: ${bad[0]}` : `บันทึกแล้ว ${ok} รายการ`, !!bad.length); stock().catch(fail);
+  });
+  on('#lowStock', 'change', async (e) => {
+    const n = parseInt(e.target.value, 10); if (!(n >= 0)) return toast('ตัวเลขไม่ถูกต้อง', true);
+    const { error: le } = await sb.from('settings').update({ low_stock: n }).eq('id', 1);
+    if (le) return fail(le); toast(`ตั้งเกณฑ์ใกล้หมดเป็น ≤ ${n} ชิ้นแล้ว`); stock().catch(fail);
   });
   $$('[data-set]').forEach((b) => b.addEventListener('click', async () => {
     const v = prompt(`ตั้งยอดคงเหลือของ “${b.dataset.name}” ตามที่นับได้จริง\n(เว้นว่าง = ไม่จำกัดจำนวน)`, b.dataset.cur);
