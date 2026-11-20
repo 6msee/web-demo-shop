@@ -1109,3 +1109,44 @@ html:not([data-theme="light"]) .card:hover .card__media,html:not([data-theme="li
 .ttl__trk{margin-top:4px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tres__items{list-style:none;margin:0;padding:12px 0 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:4px;font-size:14px}
 .tres__sum{display:flex;justify-content:space-between;align-items:baseline}.tres__sum b{font-weight:500;color:var(--gold)}
+
+/* ===== ปักหมุดตำแหน่งจัดส่ง ===== */
+.pinbox{margin-top:2px}
+.pinbox [hidden]{display:none!important}
+.pinbox__empty,.pinbox__set{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1px dashed #4A4536;background:transparent;color:var(--ink);text-align:left;font:inherit;cursor:pointer}
+.pinbox__set{border-style:solid;border-color:rgba(214,180,108,.55);background:rgba(214,180,108,.08);cursor:default}
+.pinbox__empty:hover{border-color:var(--gold)}
+.pinbox__empty>span:last-child,.pinbox__set>span:nth-child(2){display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.pinbox b{font-weight:500;font-size:14px}
+.pinbox small{font-size:12px;color:var(--muted);line-height:1.45}
+.pinbox small a{color:var(--gold);text-decoration:underline;text-underline-offset:2px}
+.pinbox__ico{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(214,180,108,.12);color:var(--gold)}
+.pinbox__ico.on{background:var(--gold);color:#0B0B0C}
+.pinbox__ico svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8}
+.pinbox__act{display:flex;gap:6px;flex:none}
+.pinbox__act button{height:32px;padding:0 12px;border-radius:99px;border:1px solid #4A4536;background:transparent;color:var(--ink);font:inherit;font-size:12px;cursor:pointer}
+.pinbox__act button:last-child{color:var(--muted)}
+.pinsheet{position:fixed;inset:0;z-index:2100;display:flex;flex-direction:column;background:#0B0B0C;color:#ECE9E2;opacity:0;transform:translateY(16px);transition:opacity .25s,transform .25s var(--ease)}
+.pinsheet.open{opacity:1;transform:none}
+.pinsheet[hidden]{display:none}
+html.pin-lock,html.pin-lock body{overflow:hidden}
+.pinsheet__bar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid #26262A}
+.pinsheet__bar b{font-weight:500;font-size:15px}
+.pinsheet__bar button{height:36px;padding:0 14px;border-radius:99px;border:1px solid #3A3A3F;background:transparent;color:#ECE9E2;font:inherit;font-size:13px;cursor:pointer;justify-self:start}
+.pinsheet__bar .pinsheet__layer{justify-self:end;border-color:rgba(214,180,108,.5);color:#D6B46C}
+.pinsheet__map{position:relative;flex:1;min-height:0}
+#pinMap{position:absolute;inset:0;background:#1A1A1D}
+.pinsheet__pin{position:absolute;left:50%;top:50%;z-index:500;width:44px;height:44px;transform:translate(-50%,-100%);pointer-events:none;transition:transform .18s var(--ease);filter:drop-shadow(0 6px 8px rgba(0,0,0,.45))}
+.pinsheet.moving .pinsheet__pin{transform:translate(-50%,-118%)}
+.pinsheet__pin svg{width:100%;height:100%;fill:#D6B46C;stroke:#0B0B0C;stroke-width:1.2}
+.pinsheet__pin circle{fill:#0B0B0C;stroke:none}
+.pinsheet__dot{position:absolute;left:50%;top:50%;z-index:499;width:8px;height:4px;margin:-2px 0 0 -4px;border-radius:50%;background:rgba(0,0,0,.45);pointer-events:none}
+.pinsheet__loc{position:absolute;left:12px;bottom:12px;z-index:500;display:flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:99px;border:0;background:#fff;color:#0B0B0C;font:inherit;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.25);cursor:pointer}
+.pinsheet__loc:disabled{opacity:.6}
+.pinsheet__loc svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+.pinsheet__foot{padding:14px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid #26262A;display:flex;flex-direction:column;gap:10px}
+.pinsheet__help{margin:0;font-size:13px;color:#BDB9B0;text-align:center}
+.pinsheet__help b{color:#D6B46C;font-weight:500}
+.pinsheet__msg{margin:0;font-size:12.5px;color:#BDB9B0;text-align:center}
+.pinsheet__msg.bad{color:#F0A27A}
+.pinsheet .leaflet-control-attribution{font-size:9px}

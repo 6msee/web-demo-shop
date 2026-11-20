@@ -48,7 +48,7 @@ const baht = (n) => '฿' + Number(n || 0).toLocaleString('th-TH', { maximumFrac
 const txt = (text, o = {}) => ({ type: 'text', text: String(text ?? '').slice(0, 300) || '-', size: 'sm', color: INK, wrap: true, ...o });
 const row = (a, b, o = {}) => ({ type: 'box', layout: 'horizontal', contents: [txt(a, { color: MUTED, flex: 5, ...o.a }), txt(b, { align: 'end', flex: 3, ...o.b })] });
 
-export function orderFlex({ shop, no, lines, sub, disc, ship, total, name, phone, addr, note, slip }) {
+export function orderFlex({ shop, no, lines, sub, disc, ship, total, name, phone, addr, note, slip, map }) {
   const items = lines.slice(0, 15).map((l) => ({
     type: 'box', layout: 'horizontal', spacing: 'sm', contents: [
       txt(`${l.name}${l.option ? ` (${l.option})` : ''}`, { flex: 6 }),
@@ -73,6 +73,7 @@ export function orderFlex({ shop, no, lines, sub, disc, ship, total, name, phone
       txt('จัดส่งถึง', { color: MUTED, size: 'xs', margin: 'lg' }),
       txt(`${name} · ${phone}`, { weight: 'bold' }),
       txt(addr, { color: '#3A3A3F' }),
+      ...(map ? [{ type: 'button', style: 'secondary', height: 'sm', margin: 'sm', action: { type: 'uri', label: '📍 เปิดหมุดใน Google Maps', uri: map } }] : []),
       ...(note ? [txt(`หมายเหตุ: ${note}`, { color: MUTED, size: 'xs' })] : [])] },
     footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px', backgroundColor: '#F5F2EA', contents: [
       txt(slip ? '✓ แนบสลิปแล้ว · รอร้านตรวจสอบและยืนยันการจัดส่ง' : 'รอร้านแจ้งช่องทางชำระเงินในแชทนี้', { size: 'xs', color: '#6E5221', align: 'center' }),

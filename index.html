@@ -24,8 +24,8 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261120.4">
-<script src="vendor/supabase.js?v=20261120.4"></script>
+<link rel="stylesheet" href="css/style.css?v=20261120.5">
+<script src="vendor/supabase.js?v=20261120.5"></script>
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
 </script>
@@ -202,6 +202,13 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
         <label for="fName">ชื่อผู้รับ</label><input id="fName" name="name" autocomplete="name" required>
         <label for="fPhone">เบอร์โทรศัพท์</label><input id="fPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="08x-xxx-xxxx" required>
         <label for="fAddr">ที่อยู่จัดส่ง</label><textarea id="fAddr" name="addr" rows="3" autocomplete="street-address" required></textarea>
+        <div class="pinbox" id="pinBox">
+          <button type="button" class="pinbox__empty" id="pinEmpty"><span class="pinbox__ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
+            <span><b>ปักหมุดตำแหน่งจัดส่ง</b><small>ช่วยให้คนส่งของนำทางด้วย Google Maps ถึงหน้าบ้านได้ทันที (ไม่บังคับ)</small></span></button>
+          <div class="pinbox__set" id="pinSet" hidden><span class="pinbox__ico on" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
+            <span><b>ปักหมุดแล้ว</b><small><span id="pinCoord"></span> · <a id="pinGmaps" target="_blank" rel="noopener">ดูใน Google Maps ↗</a></small></span>
+            <span class="pinbox__act"><button type="button" id="pinEdit">แก้หมุด</button><button type="button" id="pinClear" aria-label="ลบหมุด">ลบ</button></span></div>
+        </div>
         <label for="fNote">หมายเหตุถึงร้าน (ไม่บังคับ)</label><input id="fNote" name="note">
         <section class="pay" id="paySec" aria-labelledby="payTitle">
           <div class="pay__head"><b id="payTitle">ชำระเงิน</b><span class="pay__amt" id="payTotal">฿0</span></div>
@@ -255,6 +262,13 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
 </div>
 
 <!-- ติดตามคำสั่งซื้อ -->
+<div class="pinsheet" id="pinSheet" hidden role="dialog" aria-modal="true" aria-labelledby="pinTitle">
+  <div class="pinsheet__bar"><button type="button" class="pinsheet__x" id="pinCancel">ยกเลิก</button><b id="pinTitle">ปักหมุดจุดส่งของ</b><button type="button" class="pinsheet__layer" id="pinLayer">ดาวเทียม</button></div>
+  <div class="pinsheet__map"><div id="pinMap"></div><span class="pinsheet__pin" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22s-7.5-6.6-7.5-12.2a7.5 7.5 0 0 1 15 0C19.5 15.4 12 22 12 22z"/><circle cx="12" cy="9.8" r="2.7"/></svg></span><span class="pinsheet__dot" aria-hidden="true"></span>
+    <button type="button" class="pinsheet__loc" id="pinLocate"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg>ตำแหน่งปัจจุบัน</button></div>
+  <div class="pinsheet__foot"><p class="pinsheet__help">เลื่อนแผนที่ให้ <b>หมุดกลางจอ</b> อยู่ตรงหน้าบ้าน/ประตูที่จะรับของ</p><p class="pinsheet__msg" id="pinMsg" hidden></p>
+    <button type="button" class="btn btn--ink btn--block" id="pinOk">ยืนยันตำแหน่งนี้</button></div>
+</div>
 <div class="modal" id="trackModal" aria-hidden="true">
   <button class="modal__scrim" data-track-close aria-label="ปิด"></button>
   <div class="modal__box track" role="dialog" aria-modal="true" aria-labelledby="trackTitle">
@@ -301,6 +315,6 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   <button type="button" data-tab="cart" id="tabCart"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>ตะกร้า</span><b class="tabbar__count" id="tabCount">0</b></button>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="js/main.js?v=20261120.4"></script>
+<script type="module" src="js/main.js?v=20261120.5"></script>
 </body>
 </html>
