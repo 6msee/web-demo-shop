@@ -1,10 +1,10 @@
 // Service Worker: ทำให้ติดตั้งเป็นแอปได้ และเปิดหน้าร้านได้แม้เน็ตหลุด
 // เปลี่ยน VERSION ทุกครั้งที่อัปเดตไฟล์ เพื่อให้แอปโหลดของใหม่
-const VERSION = 'marbo-20261120.3';
+const VERSION = 'marbo-20261120.4';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png',
-  './vendor/three.module.min.js', './vendor/addons/RoomEnvironment.js', './vendor/supabase.js?v=20261120.3',
+  './vendor/three.module.min.js', './vendor/addons/RoomEnvironment.js', './vendor/supabase.js?v=20261120.4',
   './img/can-honey-lemon.webp', './img/can-lychee.webp', './img/can-kyoho-grape.webp', './img/lychee-ice.jpg'
 ];
 
@@ -24,7 +24,7 @@ self.addEventListener('fetch', (e) => {
 
   // หน้าเว็บ: ลองเน็ตก่อน ถ้าหลุดค่อยใช้ของในเครื่อง
   if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then((res) => { const copy = res.clone(); caches.open(VERSION).then((c) => c.put('./index.html', copy)); return res; })
+    e.respondWith(fetch(req, { cache: 'no-store' }).then((res) => { const copy = res.clone(); caches.open(VERSION).then((c) => c.put('./index.html', copy)); return res; })
       .catch(() => caches.match('./index.html')));
     return;
   }
