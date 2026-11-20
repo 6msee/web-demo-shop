@@ -24,8 +24,8 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261109.20">
-<script src="vendor/supabase.js?v=20261109.20"></script>
+<link rel="stylesheet" href="css/style.css?v=20261120.1">
+<script src="vendor/supabase.js?v=20261120.1"></script>
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
 </script>
@@ -198,6 +198,7 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
       </div>
       <form id="stepForm" class="form" hidden novalidate>
         <p class="form__lead">กรอกข้อมูลจัดส่ง แล้วส่งคำสั่งซื้อไปที่ LINE ของร้าน</p>
+        <div class="lineme" id="lineMe" hidden><img id="lineMeImg" alt="" width="36" height="36" onerror="this.hidden=true"><span>สั่งซื้อในนาม <b id="lineMeName"></b><small>คำสั่งซื้อจะส่งเข้าแชทร้านให้อัตโนมัติ</small></span></div>
         <label for="fName">ชื่อผู้รับ</label><input id="fName" name="name" autocomplete="name" required>
         <label for="fPhone">เบอร์โทรศัพท์</label><input id="fPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="08x-xxx-xxxx" required>
         <label for="fAddr">ที่อยู่จัดส่ง</label><textarea id="fAddr" name="addr" rows="3" autocomplete="street-address" required></textarea>
@@ -213,7 +214,7 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
       <button class="btn btn--ink btn--block" id="toCheckout">ไปหน้าชำระเงิน</button>
       <button class="btn btn--line btn--block" id="submitOrder" type="submit" form="stepForm" hidden>
         <svg viewBox="0 0 24 24" class="fill" aria-hidden="true"><path d="M12 4C7 4 3 7.2 3 11.2c0 3.6 3.2 6.6 7.6 7.1L10 21l4-2.9c4-.8 7-3.7 7-6.9C21 7.2 17 4 12 4z"/></svg>
-        ส่งคำสั่งซื้อทาง LINE
+        <span id="submitLabel">ส่งคำสั่งซื้อทาง LINE</span>
       </button>
     </div>
   </aside>
@@ -225,13 +226,14 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   <div class="modal__box" role="dialog" aria-modal="true" aria-labelledby="orderTitle">
     <div class="modal__col">
       <span class="tag" id="lineTag"></span>
+      <div class="sent" id="sentBox" hidden><span class="sent__ico" aria-hidden="true">✓</span><b>ส่งคำสั่งซื้อเข้าแชทร้านแล้ว</b><small id="sentNote">กำลังกลับไปที่แชท LINE…</small></div>
       <h2 id="orderTitle">คำสั่งซื้อ <span id="orderNo"></span></h2>
       <p class="muted">เปิดแชท LINE OA ของร้าน ข้อความสรุปคำสั่งซื้อจะถูกใส่ไว้ให้ จากนั้นโอนเงินและส่งสลิปในแชท</p>
       <div class="qr">QR Code LINE OA<br><small>(ใส่เมื่อเชื่อมต่อจริง)</small></div>
       <ol class="steps"><li>เพิ่มเพื่อน LINE OA ของร้าน</li><li>ส่งข้อความคำสั่งซื้อ</li><li>โอนเงิน <b id="payAmt"></b> แล้วส่งสลิป</li></ol>
     </div>
     <div class="modal__col">
-      <span class="muted small">ข้อความที่จะส่งไปใน LINE</span>
+      <span class="muted small" id="msgLabel">ข้อความที่จะส่งไปใน LINE</span>
       <div class="chat"><div class="bubble" id="orderMsg"></div></div>
       <button class="btn btn--line btn--block" id="openLine">เปิด LINE เพื่อส่งคำสั่งซื้อ</button>
       <button class="btn btn--ghost-dark btn--block" id="copyMsg">คัดลอกข้อความ</button>
@@ -264,6 +266,6 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   <button type="button" data-tab="cart" id="tabCart"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>ตะกร้า</span><b class="tabbar__count" id="tabCount">0</b></button>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="js/main.js?v=20261109.20"></script>
+<script type="module" src="js/main.js?v=20261120.1"></script>
 </body>
 </html>

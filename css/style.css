@@ -1029,3 +1029,18 @@ html:not([data-theme="light"]) .card:hover .card__media,html:not([data-theme="li
 .s3d-lite .s3d-foot.s3d-in .ch{opacity:1;translate:none}
 .s3d-lite .s3d-head::after{transform:scaleX(0);transition:transform .9s var(--ease) .15s}
 .s3d-lite .s3d-head.s3d-in::after{transform:scaleX(1)}
+
+/* =====================================================================
+   LINE (LIFF): ผู้สั่งจาก LINE + ส่งเข้าแชทสำเร็จ
+   ===================================================================== */
+.lineme{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--soft);margin:2px 0 6px}
+.lineme img{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 2px var(--gold)}
+.lineme span{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.lineme b{font-weight:500}
+.lineme small{font-size:12px;color:var(--muted)}
+.sent{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px 18px;border-radius:16px;background:linear-gradient(135deg,rgba(243,221,166,.18),rgba(168,124,54,.12));border:1px solid rgba(214,180,108,.4)}
+.sent__ico{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--gold-grad);color:#0B0B0C;font-weight:600}
+.sent b{font-weight:500;font-size:17px}.sent small{color:var(--muted)}
+#lineModal.is-sent .qr,#lineModal.is-sent .steps,#lineModal.is-sent #openLine,#lineModal.is-sent #copyMsg,#lineModal.is-sent .modal__col > p.muted{display:none}
+/* เปิดอยู่ใน LINE: ไม่ต้องมีปุ่มติดตั้งแอป */
+.in-line #installBtn,.in-line #installFoot{display:none!important}

@@ -1,5 +1,5 @@
 // MARBO98 — Content Studio (หลังบ้าน CMS) · Supabase Auth + Database + Storage + Realtime
-import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261109.20';
+import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261120.1';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s, r = document) => r.querySelector(s);
@@ -12,6 +12,7 @@ const bkkDay = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/
 
 const STATUS = { pending: 'รอชำระเงิน', paid: 'ชำระแล้ว', shipped: 'จัดส่งแล้ว', completed: 'สำเร็จ', cancelled: 'ยกเลิก' };
 const ROLE = { owner: 'เจ้าของร้าน', staff: 'ผู้ดูแล', pending: 'รออนุมัติ' };
+const lineChip = (o) => (o.channel === 'line' || o.line_user_id ? `<span class="linechip" title="สั่งผ่าน LINE${o.line_name ? ' · ' + esc(o.line_name) : ''}">LINE</span>` : '');
 const statusChip = (s) => `<span class="status s-${s}">${STATUS[s] || s}</span>`;
 
 let me = null;          // { user, profile }
@@ -416,7 +417,7 @@ async function dashboard() {
   on('#xlsxBtn', 'click', async (e) => {
     const btn = e.currentTarget; busy(btn, true, 'กำลังสร้างไฟล์…');
     try {
-      await loadScript('../vendor/xlsx.mini.min.js?v=20261109.20');
+      await loadScript('../vendor/xlsx.mini.min.js?v=20261120.1');
       const X = window.XLSX, wb = X.utils.book_new();
       const sheet = (name, rows, widths) => { const ws = X.utils.aoa_to_sheet(rows); if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); X.utils.book_append_sheet(wb, ws, name); };
       const n2 = (v) => Math.round(Number(v) * 100) / 100;
@@ -465,7 +466,7 @@ async function orders() {
     ${data.length ? `<div class="tablewrap"><table>
       <thead><tr><th>เลขที่</th><th>วันที่</th><th>ลูกค้า</th><th>เบอร์โทร</th><th>สถานะ</th><th class="num">ยอดชำระ</th></tr></thead>
       <tbody>${data.map((x) => `<tr class="click" data-order="${x.id}" tabindex="0"><td class="mono">${esc(x.order_no)}</td><td class="muted">${fmtDate(x.created_at)}</td>
-        <td>${esc(x.customer_name)}</td><td>${esc(x.phone)}</td><td>${statusChip(x.status)}</td><td class="num"><b>${fmt(x.total)}</b></td></tr>`).join('')}</tbody>
+        <td>${esc(x.customer_name)} ${lineChip(x)}</td><td>${esc(x.phone)}</td><td>${statusChip(x.status)}</td><td class="num"><b>${fmt(x.total)}</b></td></tr>`).join('')}</tbody>
     </table></div>` : '<div class="card empty">ไม่พบคำสั่งซื้อ</div>'}`;
   $$('[data-st]').forEach((b) => b.addEventListener('click', () => { ordersState.status = b.dataset.st; history.replaceState(null, '', '#/orders'); orders().catch(fail); }));
   let t; on('#oq', 'input', (e) => { clearTimeout(t); t = setTimeout(() => { ordersState.q = e.target.value; orders().catch(fail).then(() => { const i = $('#oq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 350); });
@@ -495,6 +496,7 @@ async function openOrder(id) {
     <section class="section"><h3>ลูกค้า</h3>
       <div class="grid2"><div><div class="lbl">ชื่อผู้รับ</div>${esc(o.customer_name)}</div><div><div class="lbl">เบอร์โทร</div><a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></div></div>
       <div><div class="lbl">ที่อยู่จัดส่ง</div><div style="white-space:pre-line">${esc(o.address)}</div></div>
+      ${o.line_user_id || o.channel === 'line' ? `<div class="lineprof">${o.line_picture ? `<img src="${esc(o.line_picture)}" alt="">` : ''}<span><span class="lbl">สั่งผ่าน LINE</span><b>${esc(o.line_name || 'ลูกค้า LINE')}</b><small class="mono">${esc(o.line_user_id || '')}</small></span><span class="muted tiny">ตอบลูกค้าได้ในแชท LINE OA ของร้าน</span></div>` : ''}
       ${o.note ? `<div><div class="lbl">หมายเหตุจากลูกค้า</div>${esc(o.note)}</div>` : ''}
     </section>
     <section class="section"><h3>รายการสินค้า</h3>
@@ -989,6 +991,8 @@ async function settings() {
     <section class="card stack"><div class="card__title">ข้อมูลร้าน</div>
       <div class="grid2"><div class="field"><label for="sName">ชื่อร้าน</label><input id="sName" value="${esc(s.shop_name)}" required></div>
         <div class="field"><label for="sLine">LINE OA Basic ID</label><input id="sLine" value="${esc(s.line_oa_id)}" placeholder="@yourshop"><small>ขึ้นต้นด้วย @ · ใช้กับปุ่ม “เปิด LINE” หลังลูกค้าสั่งซื้อ</small></div></div>
+      <div class="field"><label for="sLiff">LIFF ID (สั่งซื้อผ่าน LINE)</label><input id="sLiff" value="${esc(s.liff_id || '')}" placeholder="2001234567-AbCdEfGh">
+        <small>จาก LINE Developers › LINE Login channel › แท็บ LIFF · ใส่แล้ว ลูกค้าที่เปิดจาก rich menu จะส่งคำสั่งซื้อเข้าแชทได้อัตโนมัติ${s.liff_id ? ` · ลิงก์สำหรับ rich menu: <b class="mono">https://liff.line.me/${esc(s.liff_id)}</b>` : ''}</small></div>
       <div class="field"><label for="sAnn">ประกาศบนหน้าแรก (เว้นว่างเพื่อซ่อน)</label><input id="sAnn" value="${esc(s.announcement || '')}"></div>
       <div class="field"><label for="sFoot">ข้อความท้ายเว็บ</label><input id="sFoot" value="${esc(s.footer_note || '')}"></div></section>
     <section class="card stack"><div class="card__title">โปรโมชันและค่าจัดส่ง</div>
@@ -1003,12 +1007,13 @@ async function settings() {
     e.preventDefault();
     const line = $('#sLine').value.trim();
     const rec = {
-      shop_name: $('#sName').value.trim(), line_oa_id: line, announcement: $('#sAnn').value.trim() || null, footer_note: $('#sFoot').value.trim() || null,
+      shop_name: $('#sName').value.trim(), line_oa_id: line, liff_id: $('#sLiff').value.trim() || null, announcement: $('#sAnn').value.trim() || null, footer_note: $('#sFoot').value.trim() || null,
       bundle_min_items: parseInt($('#sMin').value, 10), bundle_discount: (parseFloat($('#sDisc').value) || 0) / 100,
       free_ship_min: parseFloat($('#sFree').value) || 0, ship_fee: parseFloat($('#sFee').value) || 0
     };
     if (!rec.shop_name) return toast('กรุณาใส่ชื่อร้าน', true);
     if (line && !/^@[\w.-]{2,40}$/.test(line)) return toast('LINE OA ID ต้องขึ้นต้นด้วย @', true);
+    if (rec.liff_id && !/^\d{6,}-[A-Za-z0-9]{4,}$/.test(rec.liff_id)) return toast('LIFF ID ไม่ถูกต้อง (รูปแบบ 2001234567-AbCdEfGh)', true);
     if (!(rec.bundle_min_items >= 1) || rec.bundle_discount < 0 || rec.bundle_discount > 0.9) return toast('ค่าโปรโมชันไม่ถูกต้อง', true);
     const b = $('#saveSet'); busy(b, true);
     const { error: er } = await sb.from('settings').update(rec).eq('id', 1);
