@@ -1,10 +1,10 @@
 // ร้านค้า: หมวดหมู่ แนะนำ ขายดี มาใหม่ สินค้าทั้งหมด หน้ารายละเอียดสินค้า ตะกร้า และ checkout ผ่าน LINE
-import { LINE_OA_ID_FALLBACK } from './config.js?v=20261120.5';
-import { placeOrder, uploadSlip, trackOrder } from './api.js?v=20261120.5';
-import { promptpayPayload, renderQR, shrinkSlip } from './pay.js?v=20261120.5';
-import { LINE, inLineApp, initLine, sendOrderToChat, closeLine } from './line.js?v=20261120.5';
-import { initPin, getPin, clearPin, mapsLink } from './pin.js?v=20261120.5';
-import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261120.5';
+import { LINE_OA_ID_FALLBACK } from './config.js?v=20261120.6';
+import { placeOrder, uploadSlip, trackOrder } from './api.js?v=20261120.6';
+import { promptpayPayload, renderQR, shrinkSlip } from './pay.js?v=20261120.6';
+import { LINE, inLineApp, initLine, sendOrderToChat, closeLine } from './line.js?v=20261120.6';
+import { initPin, getPin, clearPin, mapsLink } from './pin.js?v=20261120.6';
+import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261120.6';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -312,14 +312,14 @@ async function submit(e) {
     busyText('กำลังส่งคำสั่งซื้อ…');
     res = CAT.offline
       ? { order_no: 'FZ' + Date.now().toString().slice(-6), subtotal: T.sub, discount: T.disc, shipping: T.ship, total: T.total, offline: true }
-      : await placeOrder({ name: f.name, phone: f.phone, address: f.addr, note: f.note, slip_path: slipPath, lat: pin?.lat ?? '', lng: pin?.lng ?? '',
+      : await placeOrder({ name: f.name, phone: f.phone, address: f.addr, note: f.note, slip_path: slipPath, lat: pin?.lat ?? '', lng: pin?.lng ?? '', landmark: (f.landmark || '').trim(),
           line_user_id: LINE.profile?.userId || '', line_name: LINE.profile?.displayName || '', line_picture: LINE.profile?.pictureUrl || '' },
         T.lines.map((l) => ({ size_id: l.s.id, qty: l.q })));
   } catch (ex) { err.textContent = ex.message; err.hidden = false; btn.disabled = false; btn.innerHTML = label; return; }
   const msg = [`สั่งซื้อจาก ${CAT.settings.shop_name}`, `เลขที่ ${res.order_no}`]
     .concat(T.lines.map((l) => `• ${l.p.name}${l.p.sizes.length > 1 ? ` (${l.s.label})` : ''} × ${l.q} = ${fmt(l.sum)}`))
     .concat(Number(res.discount) ? [`ส่วนลด: −${fmt(res.discount)}`] : [])
-    .concat([`ค่าส่ง: ${Number(res.shipping) ? fmt(res.shipping) : 'ฟรี'}`, `ยอดชำระ: ${fmt(res.total)}`, slip ? '✓ แนบสลิปแล้ว รอร้านตรวจสอบ' : '', '', `ผู้รับ: ${f.name}`, `โทร: ${f.phone}`, `ที่อยู่: ${f.addr}`].concat(pin ? [`แผนที่: ${mapsLink(pin)}`] : []))
+    .concat([`ค่าส่ง: ${Number(res.shipping) ? fmt(res.shipping) : 'ฟรี'}`, `ยอดชำระ: ${fmt(res.total)}`, slip ? '✓ แนบสลิปแล้ว รอร้านตรวจสอบ' : '', '', `ผู้รับ: ${f.name}`, `โทร: ${f.phone}`, `ที่อยู่: ${f.addr}`].concat(f.landmark?.trim() ? [`จุดสังเกต: ${f.landmark.trim()}`] : []).concat(pin ? [`แผนที่: ${mapsLink(pin)}`] : []))
     .concat(f.note ? [`หมายเหตุ: ${f.note}`] : []).filter((x, i, a) => x !== '' || a[i - 1] !== '').join('\n');
   lastOrder = { no: res.order_no, msg };
   if (!res.offline) rememberOrder({ no: res.order_no, phone: f.phone.replace(/[\s-]/g, ''), at: Date.now() });
@@ -330,7 +330,7 @@ async function submit(e) {
     busyText('กำลังส่งเข้าแชท…');
     sent = await sendOrderToChat({ shop: CAT.settings.shop_name, no: res.order_no, slip: !!slip,
       lines: T.lines.map((l) => ({ name: l.p.name, option: l.p.sizes.length > 1 ? l.s.label : '', qty: l.q, sum: l.sum })),
-      sub: res.subtotal, disc: res.discount, ship: res.shipping, total: res.total, name: f.name, phone: f.phone, addr: f.addr, note: f.note, map: pin ? mapsLink(pin) : '' }, msg);
+      sub: res.subtotal, disc: res.discount, ship: res.shipping, total: res.total, name: f.name, phone: f.phone, addr: f.addr, note: f.note, mark: (f.landmark || '').trim(), map: pin ? mapsLink(pin) : '' }, msg);
   }
   btn.disabled = false; btn.innerHTML = label;
   cart = {}; save(); clearSlip(); renderCart(); e.target.reset(); clearPin(); closeDrawer();

@@ -42,43 +42,59 @@ export async function initLine(liffId) {
   return LINE;
 }
 
-// การ์ด Flex สรุปคำสั่งซื้อ (โทนดำ·ทอง ให้เข้ากับหน้าร้าน)
-const GOLD = '#B8893E', INK = '#0B0B0C', MUTED = '#8A877F';
+// ===== การ์ด Flex โทนดำ·ทอง (พรีเมียม) =====
+const C = { bg: '#0F0F11', panel: '#18181B', line: '#2A2A2F', gold: '#D6B46C', goldHi: '#F3DDA6', goldLo: '#A87C36', text: '#F2EFE8', soft: '#C9C5BC', muted: '#8C887F' };
 const baht = (n) => '฿' + Number(n || 0).toLocaleString('th-TH', { maximumFractionDigits: 2 });
-const txt = (text, o = {}) => ({ type: 'text', text: String(text ?? '').slice(0, 300) || '-', size: 'sm', color: INK, wrap: true, ...o });
-const row = (a, b, o = {}) => ({ type: 'box', layout: 'horizontal', contents: [txt(a, { color: MUTED, flex: 5, ...o.a }), txt(b, { align: 'end', flex: 3, ...o.b })] });
+const txt = (text, o = {}) => ({ type: 'text', text: String(text ?? '').slice(0, 300) || '-', size: 'sm', color: C.text, wrap: true, ...o });
+const box = (layout, contents, o = {}) => ({ type: 'box', layout, contents, ...o });
+const sep = (margin = 'lg') => ({ type: 'separator', margin, color: C.line });
+const pill = (label, color = C.gold) => box('vertical', [txt(label, { size: 'xxs', color, weight: 'bold', align: 'center', wrap: false })],
+  { backgroundColor: color + '1F', borderColor: color + '66', borderWidth: '1px', cornerRadius: '20px', paddingTop: '3px', paddingBottom: '3px', paddingStart: '10px', paddingEnd: '10px', flex: 0 });
+const kv = (k, v, o = {}) => box('horizontal', [txt(k, { size: 'xs', color: C.muted, flex: 4, gravity: 'center' }), txt(v, { size: 'sm', color: C.soft, align: 'end', flex: 5, ...o })]);
+const goldBar = (margin = 'lg') => box('vertical', [], { height: '2px', margin, background: { type: 'linearGradient', angle: '90deg', startColor: C.goldHi, endColor: C.gold + '00' } });
+const cta = (label, uri) => box('vertical', [txt(label, { color: '#0B0B0C', weight: 'bold', align: 'center', size: 'sm' })],
+  { cornerRadius: '14px', paddingAll: '14px', action: { type: 'uri', label: label.slice(0, 40), uri },
+    background: { type: 'linearGradient', angle: '90deg', startColor: C.goldHi, endColor: C.goldLo } });
+const head = (shop, tag, title, sub, tagColor) => box('vertical', [
+  box('horizontal', [txt(shop.toUpperCase(), { size: 'xs', weight: 'bold', color: C.gold, flex: 1, gravity: 'center', wrap: false }), pill(tag, tagColor)]),
+  txt(title, { size: 'xl', weight: 'bold', margin: 'lg' }),
+  ...(sub ? [txt(sub, { size: 'xs', color: C.muted, margin: 'sm' })] : []),
+  goldBar()], { paddingAll: '20px', paddingBottom: '4px', background: { type: 'linearGradient', angle: '160deg', startColor: '#2A2417', endColor: C.bg } });
+const STYLES = { header: { backgroundColor: C.bg }, body: { backgroundColor: C.bg }, footer: { backgroundColor: C.bg } };
 
-export function orderFlex({ shop, no, lines, sub, disc, ship, total, name, phone, addr, note, slip, map }) {
-  const items = lines.slice(0, 15).map((l) => ({
-    type: 'box', layout: 'horizontal', spacing: 'sm', contents: [
-      txt(`${l.name}${l.option ? ` (${l.option})` : ''}`, { flex: 6 }),
-      txt(`×${l.qty}`, { flex: 1, color: MUTED, align: 'end' }),
-      txt(baht(l.sum), { flex: 3, align: 'end' })]
-  }));
-  if (lines.length > 15) items.push(txt(`และอีก ${lines.length - 15} รายการ`, { color: MUTED }));
+export function orderFlex({ shop, no, lines, sub, disc, ship, total, name, phone, addr, note, slip, map, mark }) {
+  const items = lines.slice(0, 12).map((l) => box('horizontal', [
+    box('vertical', [txt(`${l.qty}`, { size: 'xs', weight: 'bold', color: C.gold, align: 'center' })],
+      { width: '28px', height: '28px', cornerRadius: '8px', backgroundColor: C.panel, borderColor: C.line, borderWidth: '1px', justifyContent: 'center', flex: 0 }),
+    box('vertical', [txt(l.name, { size: 'sm', weight: 'bold' }), ...(l.option ? [txt(l.option, { size: 'xxs', color: C.muted })] : [])], { flex: 1, paddingStart: '12px', justifyContent: 'center' }),
+    txt(baht(l.sum), { size: 'sm', color: C.soft, align: 'end', flex: 0, gravity: 'center' })], { spacing: 'none' }));
+  if (lines.length > 12) items.push(txt(`และอีก ${lines.length - 12} รายการ`, { size: 'xs', color: C.muted }));
+  const deliver = box('vertical', [
+    txt('จัดส่งถึง', { size: 'xxs', color: C.gold, weight: 'bold' }),
+    box('horizontal', [txt(name, { size: 'md', weight: 'bold', flex: 1 }), txt(phone, { size: 'xs', color: C.soft, align: 'end', flex: 0, gravity: 'center' })], { margin: 'sm' }),
+    txt(addr, { size: 'sm', color: C.soft, margin: 'sm' }),
+    ...(mark ? [txt(`จุดสังเกต · ${mark}`, { size: 'xs', color: C.muted, margin: 'sm' })] : []),
+    ...(map ? [box('horizontal', [txt('◉  เปิดแผนที่นำทาง', { size: 'sm', weight: 'bold', color: C.gold, flex: 1 }), txt('›', { size: 'lg', color: C.gold, flex: 0, gravity: 'center' })],
+      { margin: 'lg', paddingAll: '12px', cornerRadius: '12px', borderColor: C.gold + '66', borderWidth: '1px', backgroundColor: C.gold + '14', action: { type: 'uri', label: 'เปิดแผนที่', uri: map } })] : []),
+    ...(note ? [txt(`หมายเหตุ · ${note}`, { size: 'xs', color: C.muted, margin: 'md' })] : [])],
+    { backgroundColor: C.panel, cornerRadius: '16px', paddingAll: '16px', margin: 'xl' });
+  const statusColor = slip ? '#3DD68C' : C.gold;
   const bubble = {
-    type: 'bubble', size: 'mega',
-    header: { type: 'box', layout: 'vertical', backgroundColor: INK, paddingAll: '18px', contents: [
-      txt('คำสั่งซื้อใหม่', { color: GOLD, size: 'xs', weight: 'bold' }),
-      txt(shop, { color: '#ECE9E2', size: 'lg', weight: 'bold', margin: 'sm' }),
-      txt(`เลขที่ ${no}`, { color: '#BDB9B0', size: 'xs', margin: 'sm' })] },
-    body: { type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '18px', contents: [
-      ...items,
-      { type: 'separator', margin: 'lg' },
-      row('ยอดสินค้า', baht(sub)),
-      ...(Number(disc) ? [row('ส่วนลด', '−' + baht(disc), { b: { color: GOLD } })] : []),
-      row('ค่าจัดส่ง', Number(ship) ? baht(ship) : 'ฟรี'),
-      row('ยอดชำระ', baht(total), { a: { color: INK, weight: 'bold' }, b: { weight: 'bold', size: 'md', color: GOLD } }),
-      { type: 'separator', margin: 'lg' },
-      txt('จัดส่งถึง', { color: MUTED, size: 'xs', margin: 'lg' }),
-      txt(`${name} · ${phone}`, { weight: 'bold' }),
-      txt(addr, { color: '#3A3A3F' }),
-      ...(map ? [{ type: 'button', style: 'secondary', height: 'sm', margin: 'sm', action: { type: 'uri', label: '📍 เปิดหมุดใน Google Maps', uri: map } }] : []),
-      ...(note ? [txt(`หมายเหตุ: ${note}`, { color: MUTED, size: 'xs' })] : [])] },
-    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px', backgroundColor: '#F5F2EA', contents: [
-      txt(slip ? '✓ แนบสลิปแล้ว · รอร้านตรวจสอบและยืนยันการจัดส่ง' : 'รอร้านแจ้งช่องทางชำระเงินในแชทนี้', { size: 'xs', color: '#6E5221', align: 'center' }),
-      ...(LINE.liffId ? [{ type: 'button', style: 'primary', color: INK, height: 'sm', margin: 'sm',
-        action: { type: 'uri', label: 'ดูสถานะคำสั่งซื้อ', uri: `https://liff.line.me/${LINE.liffId}?track=${encodeURIComponent(no)}` } }] : [])] }
+    type: 'bubble', size: 'mega', styles: STYLES,
+    header: head(shop, 'คำสั่งซื้อใหม่', 'ขอบคุณสำหรับคำสั่งซื้อ', `เลขที่ ${no}`),
+    body: box('vertical', [
+      txt('รายการสินค้า', { size: 'xxs', color: C.muted, weight: 'bold' }),
+      box('vertical', items, { spacing: 'lg', margin: 'md' }),
+      sep('xl'),
+      box('vertical', [kv('ยอดสินค้า', baht(sub)), ...(Number(disc) ? [kv('ส่วนลด', '−' + baht(disc), { color: C.gold })] : []), kv('ค่าจัดส่ง', Number(ship) ? baht(ship) : 'ฟรี')], { spacing: 'sm', margin: 'lg' }),
+      box('horizontal', [txt('ยอดชำระ', { size: 'sm', color: C.soft, gravity: 'center', flex: 1 }), txt(baht(total), { size: 'xxl', weight: 'bold', color: C.goldHi, align: 'end', flex: 0 })],
+        { margin: 'lg', paddingAll: '16px', cornerRadius: '16px', borderColor: C.gold + '55', borderWidth: '1px', background: { type: 'linearGradient', angle: '90deg', startColor: '#221E15', endColor: C.panel } }),
+      deliver], { paddingAll: '20px', paddingTop: '16px' }),
+    footer: box('vertical', [
+      box('horizontal', [box('vertical', [], { width: '8px', height: '8px', cornerRadius: '4px', backgroundColor: statusColor, flex: 0 }),
+        txt(slip ? 'แนบสลิปแล้ว · รอร้านตรวจสอบยอด' : 'รอร้านแจ้งช่องทางชำระเงินในแชทนี้', { size: 'xs', color: C.soft, flex: 1 })], { spacing: 'md', alignItems: 'center', justifyContent: 'center' }),
+      ...(LINE.liffId ? [cta('ติดตามสถานะคำสั่งซื้อ', `https://liff.line.me/${LINE.liffId}?track=${encodeURIComponent(no)}`)] : [])],
+      { spacing: 'lg', paddingAll: '20px', paddingTop: '4px' })
   };
   return { type: 'flex', altText: `คำสั่งซื้อ ${no} · ยอด ${baht(total)}`.slice(0, 400), contents: bubble };
 }

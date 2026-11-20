@@ -1,5 +1,5 @@
 // MARBO98 — Content Studio (หลังบ้าน CMS) · Supabase Auth + Database + Storage + Realtime
-import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261120.5';
+import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261120.6';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s, r = document) => r.querySelector(s);
@@ -418,7 +418,7 @@ async function dashboard() {
   on('#xlsxBtn', 'click', async (e) => {
     const btn = e.currentTarget; busy(btn, true, 'กำลังสร้างไฟล์…');
     try {
-      await loadScript('../vendor/xlsx.mini.min.js?v=20261120.5');
+      await loadScript('../vendor/xlsx.mini.min.js?v=20261120.6');
       const X = window.XLSX, wb = X.utils.book_new();
       const sheet = (name, rows, widths) => { const ws = X.utils.aoa_to_sheet(rows); if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); X.utils.book_append_sheet(wb, ws, name); };
       const n2 = (v) => Math.round(Number(v) * 100) / 100;
@@ -473,8 +473,8 @@ async function orders() {
   let t; on('#oq', 'input', (e) => { clearTimeout(t); t = setTimeout(() => { ordersState.q = e.target.value; orders().catch(fail).then(() => { const i = $('#oq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 350); });
   $$('[data-order]').forEach((tr) => { const go = () => openOrder(tr.dataset.order); tr.addEventListener('click', go); tr.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); }); });
   on('#csvBtn', 'click', () => {
-    const rows = [['order_no', 'created_at', 'customer_name', 'phone', 'address', 'lat', 'lng', 'status', 'subtotal', 'discount', 'shipping', 'total', 'note']]
-      .concat(data.map((x) => [x.order_no, x.created_at, x.customer_name, x.phone, x.address, x.ship_lat ?? '', x.ship_lng ?? '', STATUS[x.status], x.subtotal, x.discount, x.shipping, x.total, x.note || '']));
+    const rows = [['order_no', 'created_at', 'customer_name', 'phone', 'address', 'landmark', 'lat', 'lng', 'status', 'subtotal', 'discount', 'shipping', 'total', 'note']]
+      .concat(data.map((x) => [x.order_no, x.created_at, x.customer_name, x.phone, x.address, x.ship_landmark || '', x.ship_lat ?? '', x.ship_lng ?? '', STATUS[x.status], x.subtotal, x.discount, x.shipping, x.total, x.note || '']));
     const csv = '﻿' + rows.map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     a.download = `orders-${bkkDay(Date.now())}.csv`; a.click(); URL.revokeObjectURL(a.href);
@@ -514,6 +514,7 @@ async function openOrder(id) {
     <section class="section"><h3>ลูกค้า</h3>
       <div class="grid2"><div><div class="lbl">ชื่อผู้รับ</div>${esc(o.customer_name)}</div><div><div class="lbl">เบอร์โทร</div><a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></div></div>
       <div><div class="lbl">ที่อยู่จัดส่ง</div><div style="white-space:pre-line">${esc(o.address)}</div></div>
+      ${o.ship_landmark ? `<div><div class="lbl">รายละเอียดสถานที่ / จุดสังเกต</div>${esc(o.ship_landmark)}</div>` : ''}
       ${o.ship_lat != null ? (() => { const ll = `${Number(o.ship_lat).toFixed(6)},${Number(o.ship_lng).toFixed(6)}`; return `<div class="navpin"><div class="lbl">หมุดตำแหน่งจัดส่ง <span class="mono muted">${ll}</span></div>
         <div class="row"><a class="btn btn--sm btn--primary" href="https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=driving" target="_blank" rel="noopener">นำทาง Google Maps ↗</a>
         <a class="btn btn--sm" href="https://waze.com/ul?ll=${ll}&navigate=yes" target="_blank" rel="noopener">Waze ↗</a>
