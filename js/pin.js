@@ -9,24 +9,33 @@ export const getPin = () => pin;
 
 // แปลงพิกัดเป็นที่อยู่ (OpenStreetMap Nominatim · ภาษาไทย)
 const pick = (a, ...k) => k.map((x) => a[x]).find(Boolean);
+async function getJSON(url, ms = 7000) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), ms);
+  try { const r = await fetch(url, { signal: ctl.signal }); return r.ok ? await r.json() : null; }
+  catch { return null; } finally { clearTimeout(t); }
+}
+const tidy = (parts) => parts.filter(Boolean).map((x) => String(x).trim()).filter((x, i, arr) => x && arr.indexOf(x) === i && x !== 'ประเทศไทย' && x !== 'Thailand').join(' ').slice(0, 400);
+
+// แหล่งที่ 1: OpenStreetMap Nominatim
+async function viaNominatim(p) {
+  const j = await getJSON(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p.lat}&lon=${p.lng}&zoom=18&addressdetails=1&accept-language=th`);
+  if (!j || j.error) return '';
+  const a = j.address || {};
+  const out = tidy([a.house_number && `เลขที่ ${a.house_number}`, pick(a, 'building', 'amenity', 'shop', 'office'), pick(a, 'road', 'pedestrian'),
+    pick(a, 'hamlet', 'village', 'neighbourhood', 'residential', 'quarter'), pick(a, 'suburb', 'subdistrict', 'town'),
+    pick(a, 'city_district', 'district', 'county', 'municipality', 'city'), pick(a, 'state', 'province'), a.postcode]);
+  return out.split(' ').length >= 2 ? out : tidy((j.display_name || '').split(', '));
+}
+// แหล่งที่ 2 (สำรอง): BigDataCloud — ฟรี ไม่ต้องใช้ key
+async function viaBDC(p) {
+  const j = await getJSON(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${p.lat}&longitude=${p.lng}&localityLanguage=th`);
+  if (!j) return '';
+  const admin = (j.localityInfo?.administrative || []).filter((x) => x.adminLevel >= 4).sort((x, y) => y.adminLevel - x.adminLevel).map((x) => x.name);
+  const extra = [j.locality, j.city, j.principalSubdivision].filter((x) => x && !admin.some((a) => a.includes(x)));
+  return tidy([...extra.slice(0, 1), ...admin, ...extra.slice(1), j.postcode]);
+}
 export async function reverseAddress(p) {
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 9000);
-  try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p.lat}&lon=${p.lng}&zoom=18&addressdetails=1&accept-language=th`, { signal: ctl.signal });
-    if (!r.ok) return '';
-    const j = await r.json(); const a = j.address || {};
-    const parts = [
-      a.house_number && `เลขที่ ${a.house_number}`,
-      pick(a, 'building', 'amenity', 'shop', 'office'),
-      pick(a, 'road', 'pedestrian'),
-      pick(a, 'hamlet', 'village', 'neighbourhood', 'residential', 'quarter'),
-      pick(a, 'suburb', 'subdistrict', 'town'),
-      pick(a, 'city_district', 'district', 'county', 'municipality', 'city'),
-      pick(a, 'state', 'province'),
-      a.postcode
-    ].filter(Boolean).filter((x, i, arr) => arr.indexOf(x) === i);
-    return (parts.length >= 2 ? parts.join(' ') : (j.display_name || '').split(', ').filter((x) => x !== 'ประเทศไทย').join(' ')).slice(0, 400);
-  } catch { return ''; } finally { clearTimeout(t); }
+  return (await viaNominatim(p)) || (await viaBDC(p)) || '';
 }
 
 function loadLeaflet() {

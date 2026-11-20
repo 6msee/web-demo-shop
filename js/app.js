@@ -1,5 +1,5 @@
 // ฟีเจอร์ระดับแอป: โหมดสว่าง/มืด, ติดตั้งเป็นแอป (PWA), service worker
-import { toast } from './fx.js?v=20261120.7';
+import { toast } from './fx.js?v=20261120.8';
 
 export function initTheme() {
   const btn = document.getElementById('themeBtn');
