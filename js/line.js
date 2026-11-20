@@ -28,11 +28,11 @@ export async function initLine(liffId) {
     }
     // ส่งข้อความเข้าแชทได้เมื่อเปิดจากในห้องแชท (rich menu ของร้าน = แชท 1:1 กับร้าน)
     const ctx = liff.getContext ? liff.getContext() : null;
-    LINE.canSend = LINE.inClient && !!ctx && ['utou', 'group', 'room'].includes(ctx.type) && (!liff.isApiAvailable || liff.isApiAvailable('sendMessages') !== false);
+    // หมายเหตุ: liff.isApiAvailable() ใช้กับ sendMessages ไม่ได้ (จะ error "Unexpected API name") → ดูจากบริบทห้องแชทอย่างเดียว
+    LINE.canSend = LINE.inClient && !!ctx && ['utou', 'group', 'room'].includes(ctx.type);
     // เหตุผลที่ส่งเข้าแชทอัตโนมัติไม่ได้ (แสดงบนหน้าชำระเงินเฉพาะตอนเปิดในแอป LINE)
     if (!LINE.inClient) LINE.reason = 'เปิดแบบเว็บธรรมดา ไม่ได้เปิดผ่านเมนูร้าน (LIFF)';
     else if (!ctx || !['utou', 'group', 'room'].includes(ctx.type)) LINE.reason = `เปิดจากนอกห้องแชทร้าน (${ctx ? ctx.type : 'ไม่ทราบ'}) — ให้กดจากเมนูในแชท`;
-    else if (!LINE.canSend) LINE.reason = 'ยังไม่ได้เปิดสิทธิ์ chat_message.write ใน LIFF';
     document.documentElement.classList.toggle('in-line', LINE.inClient);
   } catch (e) {
     LINE.error = e.message || String(e);
@@ -91,7 +91,7 @@ export async function sendOrderToChat(order, plainText) {
   } catch (e) {
     console.warn('ส่ง Flex ไม่สำเร็จ ลองส่งข้อความธรรมดา:', e);
     try { await window.liff.sendMessages([{ type: 'text', text: plainText.slice(0, 4900) }]); return true; }
-    catch (e2) { console.warn('sendMessages:', e2); return false; }
+    catch (e2) { console.warn('sendMessages:', e2); LINE.reason = `ส่งเข้าแชทไม่สำเร็จ: ${e2.message || e2}`; return false; }
   }
 }
 
