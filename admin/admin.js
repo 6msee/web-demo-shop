@@ -1,5 +1,5 @@
 // MARBO98 — Content Studio (หลังบ้าน CMS) · Supabase Auth + Database + Storage + Realtime
-import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261120.1';
+import { SUPABASE_URL, SUPABASE_KEY } from '../js/config.js?v=20261120.2';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (s, r = document) => r.querySelector(s);
@@ -10,7 +10,8 @@ const fmtDate = (d) => new Date(d).toLocaleString('th-TH', { dateStyle: 'medium'
 const imgUrl = (u) => (!u ? '' : /^(https?:|data:|blob:|\/)/.test(u) ? u : '../' + u);
 const bkkDay = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
 
-const STATUS = { pending: 'รอชำระเงิน', paid: 'ชำระแล้ว', shipped: 'จัดส่งแล้ว', completed: 'สำเร็จ', cancelled: 'ยกเลิก' };
+const STATUS = { pending: 'รอชำระเงิน', review: 'รอตรวจสลิป', paid: 'อนุมัติแล้ว · รอส่ง', shipped: 'จัดส่งแล้ว', completed: 'สำเร็จ', cancelled: 'ยกเลิก' };
+const CARRIERS = ['Kerry Express', 'Flash Express', 'ไปรษณีย์ไทย (EMS)', 'J&T Express', 'Shopee Express', 'Lalamove', 'อื่นๆ'];
 const ROLE = { owner: 'เจ้าของร้าน', staff: 'ผู้ดูแล', pending: 'รออนุมัติ' };
 const lineChip = (o) => (o.channel === 'line' || o.line_user_id ? `<span class="linechip" title="สั่งผ่าน LINE${o.line_name ? ' · ' + esc(o.line_name) : ''}">LINE</span>` : '');
 const statusChip = (s) => `<span class="status s-${s}">${STATUS[s] || s}</span>`;
@@ -281,14 +282,14 @@ function startRealtime() {
 }
 function stopRealtime() { if (realtime) { sb.removeChannel(realtime); realtime = null; } }
 async function refreshBadge() {
-  const { count } = await sb.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+  const { count } = await sb.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'review');
   const b = $('#pendingBadge'); b.hidden = !count; b.textContent = count || '';
 }
 
 /* =========================================================
    Router
    ========================================================= */
-const ROUTES = { dashboard, orders, products, categories, content, media, settings, admins };
+const ROUTES = { dashboard, orders, products, stock, categories, content, media, settings, admins };
 let current = '';
 function route() {
   if (!me) return;
@@ -333,7 +334,7 @@ async function dashboard() {
   const today = bkkDay(Date.now());
   const sum = (a) => a.reduce((s, x) => s + Number(x.total), 0);
   const rev = sum(live), todayRev = sum(live.filter((x) => bkkDay(x.created_at) === today));
-  const pending = orders.filter((x) => x.status === 'pending').length;
+  const pending = orders.filter((x) => x.status === 'review').length;
   const aov = live.length ? rev / live.length : 0;
   const units = items.reduce((a, x) => a + x.qty, 0);
 
@@ -382,7 +383,7 @@ async function dashboard() {
     <div class="kpis">
       <div class="kpi" style="--k:var(--accent)"><span>ยอดขาย ${dashDays} วัน</span><b>${fmt(rev)}</b><small>วันนี้ ${fmt(todayRev)}</small></div>
       <div class="kpi" style="--k:var(--blue)"><span>คำสั่งซื้อ</span><b>${live.length}</b><small>${units} ชิ้น · ยกเลิก ${orders.length - live.length}</small></div>
-      <div class="kpi" style="--k:var(--amber)"><span>รอชำระเงิน</span><b>${pending}</b><small><a href="#/orders?status=pending">ไปจัดการ ›</a></small></div>
+      <div class="kpi" style="--k:var(--amber)"><span>รอตรวจสลิป</span><b>${pending}</b><small><a href="#/orders?status=review">ไปตรวจ ›</a></small></div>
       <div class="kpi" style="--k:var(--purple)"><span>เฉลี่ยต่อออเดอร์</span><b>${fmt(Math.round(aov))}</b><small>ไม่รวมออเดอร์ที่ยกเลิก</small></div>
     </div>
     <div class="dash">
@@ -417,12 +418,12 @@ async function dashboard() {
   on('#xlsxBtn', 'click', async (e) => {
     const btn = e.currentTarget; busy(btn, true, 'กำลังสร้างไฟล์…');
     try {
-      await loadScript('../vendor/xlsx.mini.min.js?v=20261120.1');
+      await loadScript('../vendor/xlsx.mini.min.js?v=20261120.2');
       const X = window.XLSX, wb = X.utils.book_new();
       const sheet = (name, rows, widths) => { const ws = X.utils.aoa_to_sheet(rows); if (widths) ws['!cols'] = widths.map((w) => ({ wch: w })); X.utils.book_append_sheet(wb, ws, name); };
       const n2 = (v) => Math.round(Number(v) * 100) / 100;
       sheet('สรุป', [['รายงานร้าน MARBO98'], ['ช่วงเวลา', `${dashDays} วันล่าสุด (ถึง ${today})`], ['สร้างเมื่อ', fmtDate(Date.now())], [],
-        ['ยอดขาย (ไม่รวมยกเลิก)', n2(rev)], ['จำนวนคำสั่งซื้อ', live.length], ['จำนวนชิ้นที่ขาย', units], ['ยอดเฉลี่ยต่อออเดอร์', n2(aov)], ['รอชำระเงิน', pending], ['ยกเลิก', orders.length - live.length]], [28, 34]);
+        ['ยอดขาย (ไม่รวมยกเลิก)', n2(rev)], ['จำนวนคำสั่งซื้อ', live.length], ['จำนวนชิ้นที่ขาย', units], ['ยอดเฉลี่ยต่อออเดอร์', n2(aov)], ['รอตรวจสลิป', pending], ['ยกเลิก', orders.length - live.length]], [28, 34]);
       sheet('ยอดขายรายวัน', [['วันที่', 'ยอดขาย (บาท)'], ...Object.keys(byDay).map((d) => [d, n2(byDay[d])])], [14, 16]);
       sheet('ตามหมวดหมู่', [['หมวดหมู่', 'ยอดขาย (บาท)', 'สัดส่วน %', 'จำนวนชิ้น'], ...cats.map((c) => [c.name, n2(c.rev), Math.round((c.rev / catTotal) * 1000) / 10, c.qty])], [22, 16, 12, 12]);
       sheet('ตามสินค้า', [['อันดับ', 'สินค้า', 'หมวดหมู่', 'จำนวนชิ้น', 'ยอดขาย (บาท)'], ...prods.map((p, i) => [i + 1, p.name, p.cat, p.qty, n2(p.rev)])], [8, 30, 20, 12, 16]);
@@ -487,12 +488,29 @@ async function openOrder(id) {
   ]);
   if (error || e2) return fail(error || e2);
   let st = o.status;
+  const slipUrl = o.slip_path ? (await sb.storage.from('slips').createSignedUrl(o.slip_path, 3600)).data?.signedUrl : '';
+  const QUICK = {
+    review: [['paid', '✓ สลิปถูกต้อง · อนุมัติจัดส่ง', 'btn--primary'], ['pending', '✕ สลิปไม่ถูกต้อง', 'btn--danger']],
+    pending: [['paid', '✓ ได้รับเงินแล้ว · อนุมัติจัดส่ง', 'btn--primary']],
+    paid: [['shipped', '📦 ส่งของแล้ว', 'btn--primary']],
+    shipped: [['completed', '✓ จัดส่งสำเร็จ', 'btn--primary']]
+  }[o.status] || [];
   const msg = [`ยืนยันคำสั่งซื้อ ${o.order_no}`, ...items.map((i) => `• ${i.product_name} (${i.size_label}) × ${i.qty}`), `ยอดชำระ ${fmt(o.total)}`, `สถานะ: ${STATUS[o.status]}`].join('\n');
   openSheet(`คำสั่งซื้อ ${o.order_no}`, `
     <section class="section"><h3>สถานะ</h3>
       <div class="timeline" role="group" aria-label="สถานะคำสั่งซื้อ">${Object.entries(STATUS).map(([k, v]) => `<button type="button" data-set="${k}" aria-pressed="${k === st}">${v}</button>`).join('')}</div>
       <small class="muted">สั่งเมื่อ ${fmtDate(o.created_at)} · แก้ไขล่าสุด ${fmtDate(o.updated_at)}</small>
     </section>
+    ${QUICK.length ? `<section class="section quick-act no-print"><h3>ขั้นตอนถัดไป</h3><div class="row">${QUICK.map(([k, t, c]) => `<button type="button" class="btn ${c}" data-quick="${k}">${t}</button>`).join('')}</div>
+      <small class="muted">${o.line_user_id ? 'กดแล้วบันทึกทันที และแจ้งลูกค้าทาง LINE อัตโนมัติ' : 'ลูกค้าไม่ได้สั่งผ่าน LINE · ระบบจะบันทึกสถานะอย่างเดียว'}</small></section>` : ''}
+    ${o.slip_path ? `<section class="section"><h3>สลิปการโอน <small class="muted" style="font-weight:400">· แนบเมื่อ ${fmtDate(o.slip_at || o.created_at)}</small></h3>
+      ${slipUrl ? `<a class="slipview" href="${esc(slipUrl)}" target="_blank" rel="noopener"><img src="${esc(slipUrl)}" alt="สลิปการโอน"><span>เปิดรูปเต็ม ↗</span></a>` : '<p class="muted">เปิดสลิปไม่ได้</p>'}
+      <p class="muted tiny" style="margin:0">ตรวจยอดโอนให้ตรงกับ <b>${fmt(o.total)}</b> และชื่อบัญชีปลายทางเป็นของร้าน</p></section>`
+    : (o.status === 'pending' ? '<section class="section"><h3>สลิปการโอน</h3><p class="muted" style="margin:0">ยังไม่มีสลิปแนบมากับออเดอร์นี้</p></section>' : '')}
+    <section class="section no-print"><h3>การจัดส่ง</h3>
+      <div class="grid2"><div class="field"><label for="oCarrier">ขนส่ง</label><select id="oCarrier"><option value="">— เลือก —</option>${CARRIERS.map((c) => `<option ${o.carrier === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+        <div class="field"><label for="oTrack">เลขพัสดุ</label><input id="oTrack" value="${esc(o.tracking_no || '')}" placeholder="เช่น TH0123456789"></div></div>
+      <small class="muted">ใส่ก่อนกด “ส่งของแล้ว” ลูกค้าจะได้รับเลขพัสดุในข้อความแจ้งเตือน</small></section>
     <section class="section"><h3>ลูกค้า</h3>
       <div class="grid2"><div><div class="lbl">ชื่อผู้รับ</div>${esc(o.customer_name)}</div><div><div class="lbl">เบอร์โทร</div><a href="tel:${esc(o.phone)}">${esc(o.phone)}</a></div></div>
       <div><div class="lbl">ที่อยู่จัดส่ง</div><div style="white-space:pre-line">${esc(o.address)}</div></div>
@@ -515,13 +533,38 @@ async function openOrder(id) {
   $$('[data-set]').forEach((b) => b.addEventListener('click', () => { st = b.dataset.set; $$('[data-set]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
   $('#copyLine').addEventListener('click', async () => { try { await navigator.clipboard.writeText(msg.replace(/สถานะ: .*/, `สถานะ: ${STATUS[st]}`)); toast('คัดลอกแล้ว'); } catch { toast('คัดลอกไม่ได้', true); } });
   $('#printOrder').addEventListener('click', () => window.print());
-  $('#saveOrder').addEventListener('click', async (e) => {
-    busy(e.currentTarget, true);
-    const { error: er } = await sb.from('orders').update({ status: st, admin_note: $('#adminNote').value.trim() || null }).eq('id', id);
-    busy(e.currentTarget, false);
-    if (er) return fail(er);
-    toast('บันทึกคำสั่งซื้อแล้ว'); closeSheet(); refreshBadge(); route();
-  });
+  const notify = async (note) => {
+    if (!o.line_user_id) return '';
+    try {
+      const { data, error: fe } = await sb.functions.invoke('notify-order', { body: { order_id: id, note } });
+      if (fe) throw fe;
+      if (data && data.sent) return ' · แจ้งลูกค้าทาง LINE แล้ว';
+      return { no_token: ' · ยังไม่ได้ตั้ง LINE token ลูกค้าจึงยังไม่ได้รับแจ้ง', no_line: '', line_error: ' · ส่ง LINE ไม่สำเร็จ (ลูกค้าอาจบล็อกร้าน)' }[data && data.reason] ?? ' · แจ้ง LINE ไม่สำเร็จ';
+    } catch (err) { console.warn(err); return ' · แจ้ง LINE ไม่สำเร็จ'; }
+  };
+  const save = async (btn, nextStatus, note) => {
+    const rec = { status: nextStatus || st, admin_note: $('#adminNote').value.trim() || null,
+      carrier: $('#oCarrier').value || null, tracking_no: $('#oTrack').value.trim() || null };
+    if (rec.status === 'shipped' && !rec.tracking_no && !confirm('ยังไม่ได้ใส่เลขพัสดุ ต้องการเปลี่ยนเป็น “จัดส่งแล้ว” เลยหรือไม่?')) return;
+    busy(btn, true, 'กำลังบันทึก…');
+    const { error: er } = await sb.from('orders').update(rec).eq('id', id);
+    if (er) { busy(btn, false); return fail(er); }
+    const changed = rec.status !== o.status || (rec.status === 'shipped' && rec.tracking_no !== (o.tracking_no || null));
+    const extra = changed ? await notify(note) : '';
+    busy(btn, false);
+    toast(`บันทึกแล้ว${extra}`, /ไม่สำเร็จ|token/.test(extra)); closeSheet(); refreshBadge(); route();
+  };
+  $('#saveOrder').addEventListener('click', (e) => save(e.currentTarget));
+  $$('[data-quick]').forEach((b) => b.addEventListener('click', (e) => {
+    const next = b.dataset.quick;
+    let note;
+    if (next === 'pending' && o.status === 'review') {
+      note = prompt('เหตุผลที่สลิปไม่ถูกต้อง (จะแจ้งลูกค้า)', 'ยอดโอนไม่ตรง / สลิปไม่ชัด');
+      if (note === null) return;
+      $('#adminNote').value = [$('#adminNote').value.trim(), `สลิปไม่ผ่าน: ${note}`].filter(Boolean).join('\n');
+    }
+    save(e.currentTarget, next, note || undefined);
+  }));
   const del = $('#delOrder');
   if (del) del.addEventListener('click', async () => {
     if (!confirm(`ลบคำสั่งซื้อ ${o.order_no} ถาวร?`)) return;
@@ -775,6 +818,79 @@ function editCategory(c, count) {
 }
 
 /* =========================================================
+   Stock: ตัดอัตโนมัติเมื่อขาย · คืนเมื่อยกเลิก · รับของเข้า · ประวัติ
+   ========================================================= */
+const stockState = { tab: 'all', q: '', hidden: false };
+const MOVE = { sale: ['ขาย', 's-pending'], cancel: ['คืนจากยกเลิก', 's-paid'], restock: ['รับเข้า', 's-completed'], adjust: ['ปรับยอด', 's-review'] };
+async function stock() {
+  const alive = liveRoute();
+  page('สต็อก & รับของเข้า', 'สินค้า · ระบบตัดสต็อกเมื่อลูกค้าสั่ง และคืนสต็อกเมื่อยกเลิกออเดอร์ให้อัตโนมัติ',
+    '<button class="btn btn--primary" id="bulkIn" disabled>บันทึกรับเข้าทั้งหมด</button>');
+  const [{ data: sizes, error }, { data: moves, error: e2 }] = await Promise.all([
+    sb.from('product_sizes').select('id,label,stock,active,sort,product_id,products(name,images,active,sort)'),
+    sb.from('stock_moves').select('id,delta,balance,reason,note,created_at,size_id,product_sizes(label),products(name),orders(order_no)').order('created_at', { ascending: false }).limit(60)
+  ]);
+  if (error) throw error; if (e2) throw e2;
+  if (!alive()) return;
+  const rows = sizes.filter((z) => z.products && (stockState.hidden || z.products.active))
+    .sort((a, b) => (a.products.sort - b.products.sort) || a.products.name.localeCompare(b.products.name) || (a.sort - b.sort));
+  const kind = (z) => (z.stock == null ? 'inf' : z.stock === 0 ? 'out' : z.stock <= 10 ? 'low' : 'ok');
+  const cnt = { all: rows.length, low: rows.filter((z) => kind(z) === 'low').length, out: rows.filter((z) => kind(z) === 'out').length, inf: rows.filter((z) => kind(z) === 'inf').length };
+  const q = stockState.q.toLowerCase();
+  const list = rows.filter((z) => (stockState.tab === 'all' || kind(z) === stockState.tab) && (!q || `${z.products.name} ${z.label}`.toLowerCase().includes(q)));
+  const TABS = [['all', 'ทั้งหมด'], ['low', 'ใกล้หมด (≤10)'], ['out', 'หมดแล้ว'], ['inf', 'ไม่จำกัด']];
+  view().innerHTML = `<div class="toolbar">
+      <div class="tabs" role="tablist">${TABS.map(([k, n]) => `<button role="tab" data-stab="${k}" aria-selected="${stockState.tab === k}">${n}<span class="n">${cnt[k]}</span></button>`).join('')}</div>
+      <input type="search" id="sq" placeholder="ค้นหาสินค้า หรือตัวเลือก" value="${esc(stockState.q)}" aria-label="ค้นหาสินค้า">
+      <label class="switch"><input type="checkbox" id="sHidden" ${stockState.hidden ? 'checked' : ''}>รวมสินค้าที่ซ่อน</label></div>
+    <div class="stockgrid">
+    <div class="tablewrap"><table class="stocktable"><thead><tr><th>สินค้า</th><th class="num">คงเหลือ</th><th>รับเข้า (+)</th><th></th></tr></thead>
+      <tbody>${list.length ? list.map((z) => { const k = kind(z), img = z.products.images?.[0];
+        return `<tr data-row="${z.id}" class="${z.products.active ? '' : 'off'}">
+          <td><div class="stk"><span class="thumb">${img ? `<img src="${esc(imgUrl(img))}" alt="">` : ''}</span><span><b>${esc(z.products.name)}</b><small class="muted">${esc(z.label)}${z.active ? '' : ' · ปิดขาย'}${z.products.active ? '' : ' · ซ่อน'}</small></span></div></td>
+          <td class="num"><span class="status ${k === 'out' ? 's-cancelled' : k === 'low' ? 's-pending' : k === 'inf' ? 's-review' : 's-completed'}">${z.stock == null ? 'ไม่จำกัด' : z.stock}</span></td>
+          <td><div class="recv"><input type="number" min="1" step="1" inputmode="numeric" placeholder="0" data-qty="${z.id}" aria-label="จำนวนรับเข้า ${esc(z.products.name)} ${esc(z.label)}"><button type="button" class="btn btn--sm" data-in="${z.id}">รับเข้า</button></div></td>
+          <td><button type="button" class="btn btn--sm" data-set="${z.id}" data-cur="${z.stock ?? ''}" data-name="${esc(z.products.name)} · ${esc(z.label)}">ตั้งยอด</button></td></tr>`; }).join('')
+        : '<tr><td colspan="4" class="empty">ไม่พบสินค้า</td></tr>'}</tbody></table></div>
+    <section class="card stack movelog"><div class="card__title">ความเคลื่อนไหวล่าสุด</div>
+      ${moves.length ? `<ul class="moves">${moves.map((m) => { const [n, c] = MOVE[m.reason] || [m.reason, '']; return `<li>
+        <span class="status ${c}">${n}</span>
+        <span class="mv"><b>${esc(m.products?.name || 'สินค้าที่ลบแล้ว')}</b><small class="muted">${esc(m.product_sizes?.label || '')}${m.orders?.order_no ? ` · ${esc(m.orders.order_no)}` : ''}${m.note ? ` · ${esc(m.note)}` : ''}</small><small class="muted">${fmtDate(m.created_at)}</small></span>
+        <span class="num"><b class="${m.delta >= 0 ? 'up' : 'down'}">${m.delta >= 0 ? '+' : ''}${m.delta}</b><small class="muted">เหลือ ${m.balance ?? '∞'}</small></span></li>`; }).join('')}</ul>`
+        : '<div class="empty">ยังไม่มีความเคลื่อนไหว · เมื่อมีการขาย รับเข้า หรือยกเลิก จะแสดงที่นี่</div>'}</section></div>`;
+
+  $$('[data-stab]').forEach((b) => b.addEventListener('click', () => { stockState.tab = b.dataset.stab; stock().catch(fail); }));
+  on('#sHidden', 'change', (e) => { stockState.hidden = e.target.checked; stock().catch(fail); });
+  let t; on('#sq', 'input', (e) => { clearTimeout(t); t = setTimeout(() => { stockState.q = e.target.value.trim(); stock().catch(fail).then(() => { const i = $('#sq'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }); }, 300); });
+  const qtyOf = (id) => parseInt(($(`[data-qty="${id}"]`) || {}).value, 10);
+  const refreshBulk = () => { const n = $$('[data-qty]').filter((i) => parseInt(i.value, 10) > 0).length; const b = $('#bulkIn'); if (b) { b.disabled = !n; b.textContent = n ? `บันทึกรับเข้า ${n} รายการ` : 'บันทึกรับเข้าทั้งหมด'; } };
+  $$('[data-qty]').forEach((i) => { i.addEventListener('input', refreshBulk); i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $(`[data-in="${i.dataset.qty}"]`).click(); } }); });
+  const receive = async (id, qty) => { const { error: er } = await sb.rpc('stock_receive', { p_size: id, p_qty: qty, p_note: null }); if (er) throw er; };
+  $$('[data-in]').forEach((b) => b.addEventListener('click', async () => {
+    const id = b.dataset.in, qty = qtyOf(id);
+    if (!(qty > 0)) { toast('ใส่จำนวนที่รับเข้า', true); $(`[data-qty="${id}"]`).focus(); return; }
+    busy(b, true, '…');
+    try { await receive(id, qty); toast(`รับเข้า +${qty} แล้ว`); stock().catch(fail); } catch (er) { busy(b, false); fail(er); }
+  }));
+  on('#bulkIn', 'click', async (e) => {
+    const todo = $$('[data-qty]').map((i) => [i.dataset.qty, parseInt(i.value, 10)]).filter(([, q]) => q > 0);
+    if (!todo.length) return;
+    busy(e.currentTarget, true, 'กำลังบันทึก…');
+    let ok = 0; for (const [id, q] of todo) { try { await receive(id, q); ok++; } catch (er) { fail(er); } }
+    toast(`รับเข้าแล้ว ${ok} รายการ`); stock().catch(fail);
+  });
+  $$('[data-set]').forEach((b) => b.addEventListener('click', async () => {
+    const v = prompt(`ตั้งยอดคงเหลือของ “${b.dataset.name}” ตามที่นับได้จริง\n(เว้นว่าง = ไม่จำกัดจำนวน)`, b.dataset.cur);
+    if (v === null) return;
+    const n = v.trim() === '' ? null : parseInt(v, 10);
+    if (n !== null && !(n >= 0)) return toast('จำนวนไม่ถูกต้อง', true);
+    const { error: er } = await sb.rpc('stock_set', { p_size: b.dataset.set, p_stock: n, p_note: 'นับสต็อก' });
+    if (er) return fail(er);
+    toast('ปรับยอดแล้ว'); stock().catch(fail);
+  }));
+}
+
+/* =========================================================
    Page content
    ========================================================= */
 async function content() {
@@ -995,6 +1111,20 @@ async function settings() {
         <small>จาก LINE Developers › LINE Login channel › แท็บ LIFF · ใส่แล้ว ลูกค้าที่เปิดจาก rich menu จะส่งคำสั่งซื้อเข้าแชทได้อัตโนมัติ${s.liff_id ? ` · ลิงก์สำหรับ rich menu: <b class="mono">https://liff.line.me/${esc(s.liff_id)}</b>` : ''}</small></div>
       <div class="field"><label for="sAnn">ประกาศบนหน้าแรก (เว้นว่างเพื่อซ่อน)</label><input id="sAnn" value="${esc(s.announcement || '')}"></div>
       <div class="field"><label for="sFoot">ข้อความท้ายเว็บ</label><input id="sFoot" value="${esc(s.footer_note || '')}"></div></section>
+    <section class="card stack"><div class="card__title">รับชำระเงิน</div>
+      <div class="grid2"><div class="field"><label for="sPP">พร้อมเพย์ (เบอร์มือถือ หรือเลขบัตร/นิติบุคคล 13 หลัก)</label><input id="sPP" value="${esc(s.pay_promptpay || '')}" inputmode="numeric" placeholder="08x-xxx-xxxx">
+          <small>ใส่แล้ว หน้าชำระเงินจะสร้าง QR พร้อมเพย์ที่ใส่ยอดให้อัตโนมัติ</small></div>
+        <div class="field"><label for="sBank">ธนาคาร</label><input id="sBank" value="${esc(s.pay_bank || '')}" placeholder="เช่น กสิกรไทย"></div>
+        <div class="field"><label for="sAcc">เลขที่บัญชี</label><input id="sAcc" value="${esc(s.pay_account_no || '')}" placeholder="xxx-x-xxxxx-x"></div>
+        <div class="field"><label for="sAccName">ชื่อบัญชี</label><input id="sAccName" value="${esc(s.pay_account_name || '')}"></div></div>
+      <div class="lbl">รูป QR รับเงินของร้าน (ใช้เมื่อไม่ได้ใส่พร้อมเพย์)</div><div id="sQr"></div>
+      <label class="switch"><input type="checkbox" id="sSlip" ${s.require_slip !== false ? 'checked' : ''}>บังคับแนบสลิปก่อนส่งคำสั่งซื้อ (ออเดอร์จะขึ้นสถานะ “รอตรวจสลิป”)</label></section>
+    <section class="card stack"><div class="card__title">แจ้งสถานะถึงลูกค้าทาง LINE</div>
+      <p class="muted" style="margin:0">เมื่อเปลี่ยนสถานะคำสั่งซื้อ (อนุมัติ, ส่งของแล้ว, สำเร็จ, สลิปไม่ผ่าน) ระบบจะส่งข้อความถึงลูกค้าที่สั่งผ่าน LINE อัตโนมัติ</p>
+      <ol class="muted tiny" style="margin:0;padding-left:18px;line-height:1.8">
+        <li>LINE Developers › channel <b>Messaging API</b> ของร้าน › แท็บ Messaging API › <b>Channel access token (long-lived)</b> › Issue › คัดลอก</li>
+        <li>Supabase › Project <b>web-demo-shop</b> › Edge Functions › <b>Secrets</b> › Add new secret ชื่อ <b class="mono">LINE_CHANNEL_ACCESS_TOKEN</b> วางค่าที่คัดลอก › Save</li>
+        <li>ทดสอบ: เปลี่ยนสถานะออเดอร์ที่สั่งผ่าน LINE ระบบจะแจ้งผลการส่งบนหน้าจอ</li></ol></section>
     <section class="card stack"><div class="card__title">โปรโมชันและค่าจัดส่ง</div>
       <div class="grid2"><div class="field"><label for="sMin">ซื้อสินค้าต่างแบบครบกี่ชิ้นจึงได้ส่วนลด</label><input id="sMin" type="number" min="1" value="${s.bundle_min_items}"></div>
         <div class="field"><label for="sDisc">ส่วนลด (%)</label><input id="sDisc" type="number" min="0" max="90" step="1" value="${Math.round(Number(s.bundle_discount) * 100)}"></div>
@@ -1003,16 +1133,21 @@ async function settings() {
       <p class="tiny muted" style="margin:0">ราคาและยอดรวมทุกออเดอร์ถูกคำนวณใหม่ที่ฐานข้อมูลตามค่าตั้งนี้ ลูกค้าแก้ราคาจากหน้าเว็บไม่ได้</p></section>
     <div class="row"><button class="btn btn--primary" id="saveSet" type="submit">บันทึกการตั้งค่า</button><small class="muted">แก้ไขล่าสุด ${fmtDate(s.updated_at)}</small></div>
   </form>`;
+  const getQr = imgPicker($('#sQr'), s.pay_qr_url, { folder: 'site', hint: 'รูป QR จากแอปธนาคาร' });
   $('#setForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const line = $('#sLine').value.trim();
     const rec = {
-      shop_name: $('#sName').value.trim(), line_oa_id: line, liff_id: $('#sLiff').value.trim() || null, announcement: $('#sAnn').value.trim() || null, footer_note: $('#sFoot').value.trim() || null,
+      shop_name: $('#sName').value.trim(), line_oa_id: line, liff_id: $('#sLiff').value.trim() || null,
+      pay_promptpay: $('#sPP').value.trim() || null, pay_bank: $('#sBank').value.trim() || null, pay_account_no: $('#sAcc').value.trim() || null,
+      pay_account_name: $('#sAccName').value.trim() || null, pay_qr_url: getQr() || null, require_slip: $('#sSlip').checked, announcement: $('#sAnn').value.trim() || null, footer_note: $('#sFoot').value.trim() || null,
       bundle_min_items: parseInt($('#sMin').value, 10), bundle_discount: (parseFloat($('#sDisc').value) || 0) / 100,
       free_ship_min: parseFloat($('#sFree').value) || 0, ship_fee: parseFloat($('#sFee').value) || 0
     };
     if (!rec.shop_name) return toast('กรุณาใส่ชื่อร้าน', true);
     if (line && !/^@[\w.-]{2,40}$/.test(line)) return toast('LINE OA ID ต้องขึ้นต้นด้วย @', true);
+    const ppd = (rec.pay_promptpay || '').replace(/\D/g, '');
+    if (rec.pay_promptpay && !(/^0\d{9}$/.test(ppd) || /^\d{13}$/.test(ppd) || /^\d{15}$/.test(ppd))) return toast('พร้อมเพย์ต้องเป็นเบอร์มือถือ 10 หลัก หรือเลข 13 หลัก', true);
     if (rec.liff_id && !/^\d{6,}-[A-Za-z0-9]{4,}$/.test(rec.liff_id)) return toast('LIFF ID ไม่ถูกต้อง (รูปแบบ 2001234567-AbCdEfGh)', true);
     if (!(rec.bundle_min_items >= 1) || rec.bundle_discount < 0 || rec.bundle_discount > 0.9) return toast('ค่าโปรโมชันไม่ถูกต้อง', true);
     const b = $('#saveSet'); busy(b, true);

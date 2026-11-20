@@ -3,7 +3,8 @@
 // ถ้าเปิดนอก LINE หรือยังไม่ได้ตั้ง LIFF ID → ใช้วิธีเดิม (เปิดแชท LINE OA พร้อมข้อความ)
 const SDK = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
 
-export const LINE = { ready: false, inClient: false, canSend: false, profile: null, error: '' };
+export const LINE = { ready: false, inClient: false, canSend: false, profile: null, error: '', reason: '', liffId: '' };
+export const inLineApp = /\bLine\//i.test(navigator.userAgent);
 
 const loadSdk = () => new Promise((res, rej) => {
   if (window.liff) return res(window.liff);
@@ -14,7 +15,8 @@ const loadSdk = () => new Promise((res, rej) => {
 });
 
 export async function initLine(liffId) {
-  if (!liffId) return LINE;
+  if (!liffId) { LINE.reason = 'ยังไม่ได้ตั้งค่า LIFF ID ในหลังบ้าน'; return LINE; }
+  LINE.liffId = liffId;
   try {
     const liff = await loadSdk();
     await liff.init({ liffId, withLoginOnExternalBrowser: false });
@@ -27,9 +29,14 @@ export async function initLine(liffId) {
     // ส่งข้อความเข้าแชทได้เมื่อเปิดจากในห้องแชท (rich menu ของร้าน = แชท 1:1 กับร้าน)
     const ctx = liff.getContext ? liff.getContext() : null;
     LINE.canSend = LINE.inClient && !!ctx && ['utou', 'group', 'room'].includes(ctx.type) && (!liff.isApiAvailable || liff.isApiAvailable('sendMessages') !== false);
+    // เหตุผลที่ส่งเข้าแชทอัตโนมัติไม่ได้ (แสดงบนหน้าชำระเงินเฉพาะตอนเปิดในแอป LINE)
+    if (!LINE.inClient) LINE.reason = 'เปิดแบบเว็บธรรมดา ไม่ได้เปิดผ่านเมนูร้าน (LIFF)';
+    else if (!ctx || !['utou', 'group', 'room'].includes(ctx.type)) LINE.reason = `เปิดจากนอกห้องแชทร้าน (${ctx ? ctx.type : 'ไม่ทราบ'}) — ให้กดจากเมนูในแชท`;
+    else if (!LINE.canSend) LINE.reason = 'ยังไม่ได้เปิดสิทธิ์ chat_message.write ใน LIFF';
     document.documentElement.classList.toggle('in-line', LINE.inClient);
   } catch (e) {
     LINE.error = e.message || String(e);
+    LINE.reason = `LIFF เริ่มต้นไม่สำเร็จ: ${LINE.error}`;
     console.warn('LINE LIFF:', LINE.error);
   }
   return LINE;
@@ -41,7 +48,7 @@ const baht = (n) => '฿' + Number(n || 0).toLocaleString('th-TH', { maximumFrac
 const txt = (text, o = {}) => ({ type: 'text', text: String(text ?? '').slice(0, 300) || '-', size: 'sm', color: INK, wrap: true, ...o });
 const row = (a, b, o = {}) => ({ type: 'box', layout: 'horizontal', contents: [txt(a, { color: MUTED, flex: 5, ...o.a }), txt(b, { align: 'end', flex: 3, ...o.b })] });
 
-export function orderFlex({ shop, no, lines, sub, disc, ship, total, name, phone, addr, note }) {
+export function orderFlex({ shop, no, lines, sub, disc, ship, total, name, phone, addr, note, slip }) {
   const items = lines.slice(0, 15).map((l) => ({
     type: 'box', layout: 'horizontal', spacing: 'sm', contents: [
       txt(`${l.name}${l.option ? ` (${l.option})` : ''}`, { flex: 6 }),
@@ -67,8 +74,10 @@ export function orderFlex({ shop, no, lines, sub, disc, ship, total, name, phone
       txt(`${name} · ${phone}`, { weight: 'bold' }),
       txt(addr, { color: '#3A3A3F' }),
       ...(note ? [txt(`หมายเหตุ: ${note}`, { color: MUTED, size: 'xs' })] : [])] },
-    footer: { type: 'box', layout: 'vertical', paddingAll: '14px', backgroundColor: '#F5F2EA', contents: [
-      txt('รอร้านยืนยันยอดและแจ้งช่องทางชำระเงินในแชทนี้', { size: 'xs', color: '#6E5221', align: 'center' })] }
+    footer: { type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px', backgroundColor: '#F5F2EA', contents: [
+      txt(slip ? '✓ แนบสลิปแล้ว · รอร้านตรวจสอบและยืนยันการจัดส่ง' : 'รอร้านแจ้งช่องทางชำระเงินในแชทนี้', { size: 'xs', color: '#6E5221', align: 'center' }),
+      ...(LINE.liffId ? [{ type: 'button', style: 'primary', color: INK, height: 'sm', margin: 'sm',
+        action: { type: 'uri', label: 'ดูสถานะคำสั่งซื้อ', uri: `https://liff.line.me/${LINE.liffId}?track=${encodeURIComponent(no)}` } }] : [])] }
   };
   return { type: 'flex', altText: `คำสั่งซื้อ ${no} · ยอด ${baht(total)}`.slice(0, 400), contents: bubble };
 }

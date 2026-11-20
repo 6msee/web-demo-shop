@@ -1,9 +1,9 @@
 // จุดเริ่มต้น: โหลดข้อมูลจาก Supabase → ใส่เนื้อหา CMS → สร้างร้าน → ฉาก 3 มิติหมุนตามการเลื่อนจอ
-import { loadCatalog } from './api.js?v=20261120.1';
-import { initCursor, initMagnetic, initSplit, initReveal } from './fx.js?v=20261120.1';
-import { initTheme, initPWA } from './app.js?v=20261120.1';
-import { initScroll3D } from './scroll3d.js?v=20261120.1';
-import { initShop, openProduct, productById, categoryOf, coverOf, priceLabel, esc } from './shop.js?v=20261120.1';
+import { loadCatalog } from './api.js?v=20261120.2';
+import { initCursor, initMagnetic, initSplit, initReveal } from './fx.js?v=20261120.2';
+import { initTheme, initPWA } from './app.js?v=20261120.2';
+import { initScroll3D } from './scroll3d.js?v=20261120.2';
+import { initShop, openProduct, productById, categoryOf, coverOf, priceLabel, esc } from './shop.js?v=20261120.2';
 
 const loaderEl = document.getElementById('loader');
 const bar = document.getElementById('loadBar'), pct = document.getElementById('loadPct');
@@ -143,7 +143,7 @@ function initTabbar() {
   try {
     if (heroCfg.mode === 'image') throw new Error('cover-only');
     if (!items.length) throw new Error('no featured items');
-    const { createScene } = await import('./scene.js?v=20261120.1');
+    const { createScene } = await import('./scene.js?v=20261120.2');
     scene = await createScene(document.getElementById('gl'), items, { onProgress: (p) => setLoad(0.25 + p * 0.7), onFocus: showSpot, onPick: openProduct });
     await (document.fonts ? document.fonts.ready : Promise.resolve());
   } catch (err) {

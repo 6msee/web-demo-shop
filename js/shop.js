@@ -1,8 +1,9 @@
 // ร้านค้า: หมวดหมู่ แนะนำ ขายดี มาใหม่ สินค้าทั้งหมด หน้ารายละเอียดสินค้า ตะกร้า และ checkout ผ่าน LINE
-import { LINE_OA_ID_FALLBACK } from './config.js?v=20261120.1';
-import { placeOrder } from './api.js?v=20261120.1';
-import { LINE, initLine, sendOrderToChat, closeLine } from './line.js?v=20261120.1';
-import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261120.1';
+import { LINE_OA_ID_FALLBACK } from './config.js?v=20261120.2';
+import { placeOrder, uploadSlip, trackOrder } from './api.js?v=20261120.2';
+import { promptpayPayload, renderQR, shrinkSlip } from './pay.js?v=20261120.2';
+import { LINE, inLineApp, initLine, sendOrderToChat, closeLine } from './line.js?v=20261120.2';
+import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261120.2';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -16,6 +17,10 @@ let CAT, RULES, LINE_ID, byId = {}, catBy = {}, soldBy = {}, newIds = new Set();
 let cart = load();
 const view = { cat: 'all', q: '', sort: 'rec', limit: 12 };
 let lastOrder = null;
+let slip = null;            // { file, url } รูปสลิปที่เลือกไว้ (ยังไม่อัปโหลด จนกว่าจะกดส่ง)
+const MY = 'fizz-my-orders';  // คำสั่งซื้อที่สั่งจากเครื่องนี้ (ไว้ติดตามสถานะ)
+const myOrders = () => { try { return JSON.parse(localStorage.getItem(MY)) || []; } catch { return []; } };
+const rememberOrder = (o) => { try { localStorage.setItem(MY, JSON.stringify([o, ...myOrders().filter((x) => x.no !== o.no)].slice(0, 8))); } catch { /* ไม่เป็นไร */ } };
 
 function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch { /* private mode */ } }
@@ -108,7 +113,17 @@ export function initShop(cat) {
       if (!LINE.canSend) $('#lineMe small').textContent = 'เปิดจากเมนูในแชทร้าน เพื่อส่งคำสั่งซื้อเข้าแชทอัตโนมัติ';
     }
     if (LINE.canSend) $('#submitLabel').textContent = 'ยืนยันและส่งเข้าแชท LINE';
+    // เปิดในแอป LINE แต่ส่งเข้าแชทอัตโนมัติไม่ได้ → บอกสาเหตุ (ช่วยตั้งค่า)
+    const d = $('#lineDiag'); d.hidden = !(inLineApp && s.liff_id && !LINE.canSend);
+    d.textContent = `โหมด LINE ไม่พร้อม: ${LINE.reason || 'ไม่ทราบสาเหตุ'} · ระบบจะเปิดแชทร้านพร้อมข้อความให้แทน`;
+    openTrackFromUrl();
   });
+  $('#fSlip').addEventListener('change', pickSlip);
+  $$('[data-track-open]').forEach((b) => b.addEventListener('click', () => openTrack()));
+  $$('[data-track-close]').forEach((b) => b.addEventListener('click', closeTrack));
+  $('#trackForm').addEventListener('submit', (e) => { e.preventDefault(); runTrack($('#tNo').value, $('#tPhone').value); });
+  renderPayInfo();
+  openTrackFromUrl();
   addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePD(); closeModal(); closeDrawer(); } });
 }
 
@@ -257,6 +272,7 @@ function renderCart() {
   $('#sShip').textContent = T.lines.length ? (T.ship ? fmt(T.ship) : 'ฟรี') : '-';
   $('#sTotal').textContent = fmt(T.total);
   $('#toCheckout').disabled = T.lines.length === 0;
+  renderPayAmount(T.total);
   if (!T.lines.length) step('cart');
 }
 
@@ -275,44 +291,143 @@ function step(s) {
 async function submit(e) {
   e.preventDefault();
   const f = Object.fromEntries(new FormData(e.target).entries());
-  const ok = { name: f.name.trim().length > 0, phone: /^0\d{8,9}$/.test(f.phone.replace(/[\s-]/g, '')), addr: f.addr.trim().length > 5 };
+  const needSlip = !CAT.offline && CAT.settings.require_slip !== false;
+  const ok = { name: f.name.trim().length > 0, phone: /^0\d{8,9}$/.test(f.phone.replace(/[\s-]/g, '')), addr: f.addr.trim().length > 5, slip: !needSlip || !!slip };
   $('#fName').classList.toggle('bad', !ok.name); $('#fPhone').classList.toggle('bad', !ok.phone); $('#fAddr').classList.toggle('bad', !ok.addr);
-  const err = $('#formErr'); err.textContent = 'กรุณากรอกชื่อ เบอร์โทร 9–10 หลัก และที่อยู่ให้ครบ';
-  const good = ok.name && ok.phone && ok.addr; err.hidden = good; if (!good) return;
+  $('#slipBox').classList.toggle('bad', !ok.slip);
+  const err = $('#formErr');
+  err.textContent = !ok.name || !ok.phone || !ok.addr ? 'กรุณากรอกชื่อ เบอร์โทร 9–10 หลัก และที่อยู่ให้ครบ' : 'กรุณาแนบสลิปการโอนก่อนส่งคำสั่งซื้อ';
+  const good = ok.name && ok.phone && ok.addr && ok.slip; err.hidden = good;
+  if (!good) { (!ok.slip && ok.name && ok.phone && ok.addr ? $('#slipBox') : err).scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   const T = totals();
-  const btn = $('#submitOrder'); const label = btn.innerHTML; btn.disabled = true; btn.textContent = 'กำลังส่งคำสั่งซื้อ…';
+  const btn = $('#submitOrder'); const label = btn.innerHTML; btn.disabled = true;
+  const busyText = (t) => { btn.textContent = t; };
   let res;
   try {
+    let slipPath = '';
+    if (slip && !CAT.offline) { busyText('กำลังอัปโหลดสลิป…'); slipPath = await uploadSlip(await shrinkSlip(slip.file)); }
+    busyText('กำลังส่งคำสั่งซื้อ…');
     res = CAT.offline
       ? { order_no: 'FZ' + Date.now().toString().slice(-6), subtotal: T.sub, discount: T.disc, shipping: T.ship, total: T.total, offline: true }
-      : await placeOrder({ name: f.name, phone: f.phone, address: f.addr, note: f.note,
+      : await placeOrder({ name: f.name, phone: f.phone, address: f.addr, note: f.note, slip_path: slipPath,
           line_user_id: LINE.profile?.userId || '', line_name: LINE.profile?.displayName || '', line_picture: LINE.profile?.pictureUrl || '' },
         T.lines.map((l) => ({ size_id: l.s.id, qty: l.q })));
   } catch (ex) { err.textContent = ex.message; err.hidden = false; btn.disabled = false; btn.innerHTML = label; return; }
-  btn.disabled = false; btn.innerHTML = label;
   const msg = [`สั่งซื้อจาก ${CAT.settings.shop_name}`, `เลขที่ ${res.order_no}`]
     .concat(T.lines.map((l) => `• ${l.p.name}${l.p.sizes.length > 1 ? ` (${l.s.label})` : ''} × ${l.q} = ${fmt(l.sum)}`))
     .concat(Number(res.discount) ? [`ส่วนลด: −${fmt(res.discount)}`] : [])
-    .concat([`ค่าส่ง: ${Number(res.shipping) ? fmt(res.shipping) : 'ฟรี'}`, `ยอดชำระ: ${fmt(res.total)}`, '', `ผู้รับ: ${f.name}`, `โทร: ${f.phone}`, `ที่อยู่: ${f.addr}`])
-    .concat(f.note ? [`หมายเหตุ: ${f.note}`] : []).join('\n');
+    .concat([`ค่าส่ง: ${Number(res.shipping) ? fmt(res.shipping) : 'ฟรี'}`, `ยอดชำระ: ${fmt(res.total)}`, slip ? '✓ แนบสลิปแล้ว รอร้านตรวจสอบ' : '', '', `ผู้รับ: ${f.name}`, `โทร: ${f.phone}`, `ที่อยู่: ${f.addr}`])
+    .concat(f.note ? [`หมายเหตุ: ${f.note}`] : []).filter((x, i, a) => x !== '' || a[i - 1] !== '').join('\n');
   lastOrder = { no: res.order_no, msg };
-  $('#orderNo').textContent = res.order_no; $('#orderMsg').textContent = msg; $('#payAmt').textContent = fmt(res.total);
-  $('#lineTag').textContent = res.offline ? 'โหมดออฟไลน์ · ยังไม่บันทึกลงระบบ' : (LINE_ID ? `บันทึกแล้ว · LINE OA ${LINE_ID}` : 'บันทึกคำสั่งซื้อแล้ว · ยังไม่เชื่อมต่อ LINE');
-  // อยู่ใน LINE → ส่งการ์ดสรุปเข้าแชทร้านในนามลูกค้า แล้วปิดหน้าต่างกลับไปที่แชท
+  if (!res.offline) rememberOrder({ no: res.order_no, phone: f.phone.replace(/[\s-]/g, ''), at: Date.now() });
+
+  // 1) อยู่ใน LINE (เปิดจากเมนูร้าน) → ส่งการ์ดเข้าแชทในนามลูกค้า แล้วปิดหน้ากลับไปที่แชททันที
   let sent = false;
   if (LINE.canSend && !res.offline) {
-    btn.disabled = true; btn.textContent = 'กำลังส่งเข้าแชท…';
-    sent = await sendOrderToChat({ shop: CAT.settings.shop_name, no: res.order_no,
+    busyText('กำลังส่งเข้าแชท…');
+    sent = await sendOrderToChat({ shop: CAT.settings.shop_name, no: res.order_no, slip: !!slip,
       lines: T.lines.map((l) => ({ name: l.p.name, option: l.p.sizes.length > 1 ? l.s.label : '', qty: l.q, sum: l.sum })),
       sub: res.subtotal, disc: res.discount, ship: res.shipping, total: res.total, name: f.name, phone: f.phone, addr: f.addr, note: f.note }, msg);
-    btn.disabled = false; btn.innerHTML = label;
   }
-  cart = {}; save(); renderCart(); e.target.reset(); closeDrawer();
-  const m = $('#lineModal'); m.classList.toggle('is-sent', sent); $('#sentBox').hidden = !sent;
-  if (sent) $('#lineTag').textContent = `บันทึกแล้ว · ${res.order_no}`;
-  $('#msgLabel').textContent = sent ? 'สรุปคำสั่งซื้อที่ส่งเข้าแชทแล้ว' : 'ข้อความที่จะส่งไปใน LINE';
-  m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); setTimeout(() => (sent ? m.querySelector('[data-close-modal].btn') : $('#openLine'))?.focus(), 60);
-  if (sent) setTimeout(closeLine, 2200);
+  btn.disabled = false; btn.innerHTML = label;
+  cart = {}; save(); clearSlip(); renderCart(); e.target.reset(); closeDrawer();
+  if (sent) {
+    showDone('ส่งคำสั่งซื้อเข้าแชทแล้ว', 'กำลังกลับไปที่แชท LINE…', res.order_no);
+    setTimeout(() => { closeLine(); setTimeout(() => { hideDone(); openTrack(res.order_no, f.phone); }, 1500); }, 1100);
+    return;
+  }
+  // 2) ไม่ได้อยู่ในโหมด LINE แต่ตั้งค่า LINE OA ไว้ → เปิดแชทร้านพร้อมข้อความสรุปทันที
+  if (LINE_ID && !res.offline) {
+    showDone('บันทึกคำสั่งซื้อแล้ว', 'กำลังเปิด LINE เพื่อส่งสรุปคำสั่งซื้อ…', res.order_no);
+    setTimeout(() => { location.href = `https://line.me/R/oaMessage/${encodeURIComponent(LINE_ID)}/?${encodeURIComponent(msg)}`; }, 700);
+    setTimeout(hideDone, 4000);
+    return;
+  }
+  // 3) ยังไม่ได้ตั้งค่า LINE หรือโหมดออฟไลน์ → แสดงสรุปให้คัดลอก
+  $('#orderNo').textContent = res.order_no; $('#orderMsg').textContent = msg; $('#payAmt').textContent = fmt(res.total);
+  $('#lineTag').textContent = res.offline ? 'โหมดออฟไลน์ · ยังไม่บันทึกลงระบบ' : 'บันทึกคำสั่งซื้อแล้ว · ยังไม่เชื่อมต่อ LINE';
+  const m = $('#lineModal'); m.classList.remove('is-sent'); $('#sentBox').hidden = true;
+  m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); setTimeout(() => $('#openLine').focus(), 60);
+}
+
+function showDone(title, sub, no) { $('#doneTitle').textContent = title; $('#doneSub').textContent = sub; $('#doneNo').textContent = no ? `เลขที่ ${no}` : ''; $('#doneScreen').hidden = false; }
+function hideDone() { $('#doneScreen').hidden = true; }
+
+/* ---------- ชำระเงิน: ข้อมูลบัญชี + QR พร้อมเพย์ + แนบสลิป ---------- */
+function renderPayInfo() {
+  const s = CAT.settings;
+  const rows = [];
+  if (s.pay_promptpay) rows.push(`<div class="pay__row"><span>พร้อมเพย์</span><b>${esc(s.pay_promptpay)}</b><button type="button" class="pay__copy" data-copy="${esc(String(s.pay_promptpay).replace(/\D/g, ''))}">คัดลอก</button></div>`);
+  if (s.pay_account_no) rows.push(`<div class="pay__row"><span>${esc(s.pay_bank || 'บัญชีธนาคาร')}</span><b>${esc(s.pay_account_no)}</b><button type="button" class="pay__copy" data-copy="${esc(String(s.pay_account_no).replace(/\D/g, ''))}">คัดลอก</button></div>`);
+  if (s.pay_account_name) rows.push(`<div class="pay__row"><span>ชื่อบัญชี</span><b>${esc(s.pay_account_name)}</b></div>`);
+  if (!s.pay_promptpay && s.pay_qr_url) rows.unshift(`<img class="pay__qrimg" src="${esc(s.pay_qr_url)}" alt="QR ชำระเงินของร้าน">`);
+  $('#payInfo').innerHTML = rows.join('') || '<p class="muted small" style="margin:0">ร้านยังไม่ได้ตั้งค่าบัญชีรับเงิน · โอนตามที่ร้านแจ้งในแชท แล้วแนบสลิปที่นี่</p>';
+  $$('#payInfo [data-copy]').forEach((b) => b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(b.dataset.copy); toast('คัดลอกแล้ว'); } catch { toast('คัดลอกไม่ได้'); }
+  }));
+  $('#paySec').hidden = CAT.offline && !rows.length;
+}
+let qrFor = null;
+function renderPayAmount(total) {
+  $('#payTotal').textContent = fmt(total);
+  const pp = CAT && CAT.settings.pay_promptpay;
+  const payload = pp && total > 0 ? promptpayPayload(pp, total) : null;
+  $('#payQr').hidden = !payload;
+  if (payload && payload !== qrFor) { qrFor = payload; renderQR($('#payQrSvg'), payload).catch(() => { $('#payQr').hidden = true; }); }
+}
+function pickSlip(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { toast('กรุณาเลือกไฟล์รูปภาพ'); e.target.value = ''; return; }
+  if (slip) URL.revokeObjectURL(slip.url);
+  slip = { file, url: URL.createObjectURL(file) };
+  $('#slipPrev').src = slip.url; $('#slipEmpty').hidden = true; $('#slipDone').hidden = false;
+  $('#slipBox').classList.remove('bad'); $('#slipBox').classList.add('has');
+}
+function clearSlip() {
+  if (slip) URL.revokeObjectURL(slip.url); slip = null;
+  $('#fSlip').value = ''; $('#slipEmpty').hidden = false; $('#slipDone').hidden = true; $('#slipBox').classList.remove('has', 'bad');
+}
+
+/* ---------- ติดตามคำสั่งซื้อ ---------- */
+const TRACK = [['review', 'ได้รับสลิป', 'ร้านกำลังตรวจสอบการชำระเงิน'], ['paid', 'ยืนยันการชำระเงิน', 'กำลังแพ็กสินค้าเตรียมจัดส่ง'],
+  ['shipped', 'จัดส่งแล้ว', 'สินค้าอยู่ระหว่างขนส่ง'], ['completed', 'จัดส่งสำเร็จ', 'ขอบคุณที่อุดหนุน']];
+const RANK = { pending: 0, review: 1, paid: 2, shipped: 3, completed: 4 };
+function openTrack(no = '', phone = '') {
+  const mine = myOrders();
+  if (!phone && no) phone = (mine.find((x) => x.no === no) || {}).phone || '';
+  $('#tNo').value = no; $('#tPhone').value = phone; $('#trackErr').hidden = true; $('#trackResult').hidden = true; $('#trackForm').hidden = false;
+  $('#trackMine').innerHTML = mine.length && !no ? `<p class="muted small">คำสั่งซื้อจากเครื่องนี้</p>${mine.map((o) => `<button type="button" class="chip" data-mine="${esc(o.no)}">${esc(o.no)}</button>`).join('')}` : '';
+  $$('[data-mine]').forEach((b) => b.addEventListener('click', () => { const o = mine.find((x) => x.no === b.dataset.mine); runTrack(o.no, o.phone); }));
+  const m = $('#trackModal'); m.classList.add('open'); m.setAttribute('aria-hidden', 'false');
+  if (no && phone) runTrack(no, phone); else setTimeout(() => (no ? $('#tPhone') : $('#tNo')).focus(), 80);
+}
+function closeTrack() { const m = $('#trackModal'); m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+function openTrackFromUrl() {
+  const no = new URLSearchParams(location.search).get('track');
+  if (!no || openTrackFromUrl.done) return; openTrackFromUrl.done = true;
+  openTrack(no.toUpperCase());
+}
+async function runTrack(no, phone) {
+  const err = $('#trackErr'); err.hidden = true;
+  no = String(no || '').trim().toUpperCase(); phone = String(phone || '').replace(/[\s-]/g, '');
+  if (!no || !/^0\d{8,9}$/.test(phone)) { err.textContent = 'กรอกเลขที่คำสั่งซื้อและเบอร์โทรที่ใช้สั่งให้ถูกต้อง'; err.hidden = false; return; }
+  if (CAT.offline) { err.textContent = 'ตอนนี้เชื่อมต่อระบบไม่ได้ ลองใหม่อีกครั้ง'; err.hidden = false; return; }
+  let o;
+  try { o = await trackOrder(no, phone); } catch (ex) { err.textContent = ex.message; err.hidden = false; return; }
+  if (!o) { err.textContent = 'ไม่พบคำสั่งซื้อนี้ ตรวจสอบเลขที่และเบอร์โทรอีกครั้ง'; err.hidden = false; return; }
+  rememberOrder({ no: o.order_no, phone, at: Date.now() });
+  const at = (st) => { const ev = (o.events || []).filter((x) => x.status === st).pop(); return ev ? new Date(ev.at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : ''; };
+  const rank = RANK[o.status] ?? 0, cancelled = o.status === 'cancelled';
+  const head = cancelled ? '<span class="tstat tstat--x">ยกเลิกแล้ว</span>' : o.status === 'pending' ? '<span class="tstat tstat--warn">รอชำระเงิน / รอสลิปใหม่</span>' : `<span class="tstat">${esc(TRACK[rank - 1][1])}</span>`;
+  $('#trackResult').innerHTML = `<div class="tres">
+      <div class="tres__top"><div><small class="muted">เลขที่</small><b>${esc(o.order_no)}</b></div>${head}</div>
+      ${o.status === 'pending' ? '<p class="tres__warn">ร้านยังไม่ได้รับการชำระเงิน หรือสลิปไม่ถูกต้อง กรุณาส่งสลิปใหม่ในแชท LINE ของร้าน</p>' : ''}
+      ${cancelled ? '' : `<ol class="ttl">${TRACK.map(([k, t, d], i) => `<li class="${i < rank ? 'on' : ''} ${i === rank - 1 ? 'now' : ''}"><b>${t}</b><small>${i < rank ? esc(at(k) || '') : d}</small>${k === 'shipped' && o.tracking_no && i < rank ? `<span class="ttl__trk">${esc(o.carrier || 'เลขพัสดุ')} · <b>${esc(o.tracking_no)}</b> <button type="button" class="pay__copy" data-copy-trk="${esc(o.tracking_no)}">คัดลอก</button></span>` : ''}</li>`).join('')}</ol>`}
+      <ul class="tres__items">${(o.items || []).map((i) => `<li>${esc(i.name)}${i.option ? ` <span class="muted">(${esc(i.option)})</span>` : ''} × ${i.qty}</li>`).join('')}</ul>
+      <div class="tres__sum"><span>ยอดชำระ</span><b>${fmt(o.total)}</b></div></div>`;
+  $$('[data-copy-trk]').forEach((b) => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(b.dataset.copyTrk); toast('คัดลอกเลขพัสดุแล้ว'); } catch { /* */ } }));
+  $('#trackForm').hidden = true; $('#trackMine').innerHTML = ''; $('#trackResult').hidden = false;
 }
 function closeModal() { const m = $('#lineModal'); if (!m.classList.contains('open')) return; m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
 async function copyMsg() { if (!lastOrder) return; try { await navigator.clipboard.writeText(lastOrder.msg); toast('คัดลอกข้อความแล้ว นำไปวางในแชท LINE ได้เลย'); } catch { toast('คัดลอกไม่ได้ ลองเลือกข้อความแล้วคัดลอกเอง'); } }

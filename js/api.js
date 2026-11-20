@@ -1,6 +1,6 @@
 // ชั้นเชื่อมต่อ Supabase ที่หน้าร้านใช้ (อ่านแค็ตตาล็อก + อันดับขายดี + ส่งคำสั่งซื้อ)
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=20261120.1';
-import { FALLBACK } from './data.js?v=20261120.1';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=20261120.2';
+import { FALLBACK } from './data.js?v=20261120.2';
 
 let client = null;
 export function sb() {
@@ -41,8 +41,26 @@ export async function loadCatalog() {
 
 const ERR = {
   invalid_name: 'กรุณากรอกชื่อผู้รับ', invalid_phone: 'เบอร์โทรไม่ถูกต้อง', invalid_address: 'กรุณากรอกที่อยู่ให้ครบ',
-  invalid_items: 'ตะกร้าไม่ถูกต้อง', invalid_qty: 'จำนวนสินค้าไม่ถูกต้อง', item_unavailable: 'มีสินค้าบางรายการไม่พร้อมขายแล้ว'
+  invalid_items: 'ตะกร้าไม่ถูกต้อง', invalid_qty: 'จำนวนสินค้าไม่ถูกต้อง', item_unavailable: 'มีสินค้าบางรายการไม่พร้อมขายแล้ว',
+  slip_required: 'กรุณาแนบสลิปการโอนก่อนส่งคำสั่งซื้อ', invalid_slip: 'อัปโหลดสลิปไม่สำเร็จ ลองเลือกรูปใหม่อีกครั้ง'
 };
+
+// อัปโหลดสลิปเข้าคลังสลิป (ลูกค้าอัปโหลดได้ แต่เปิดดูไม่ได้ — ผู้ดูแลเท่านั้นที่ดูได้)
+export async function uploadSlip({ blob, ext, type }) {
+  const id = (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  })).toLowerCase();
+  const path = `${id}.${ext}`;
+  const { error } = await sb().storage.from('slips').upload(path, blob, { contentType: type, upsert: false, cacheControl: '3600' });
+  if (error) throw new Error('อัปโหลดสลิปไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
+  return path;
+}
+
+export async function trackOrder(no, phone) {
+  const { data, error } = await sb().rpc('track_order', { p_no: no, p_phone: phone });
+  if (error) throw new Error('ตรวจสอบสถานะไม่สำเร็จ ลองใหม่อีกครั้ง');
+  return data;
+}
 export async function placeOrder(customer, items) {
   const { data, error } = await sb().rpc('place_order', { p_customer: customer, p_items: items });
   if (error) {

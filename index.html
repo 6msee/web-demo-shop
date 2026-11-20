@@ -24,8 +24,8 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261120.1">
-<script src="vendor/supabase.js?v=20261120.1"></script>
+<link rel="stylesheet" href="css/style.css?v=20261120.2">
+<script src="vendor/supabase.js?v=20261120.2"></script>
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
 </script>
@@ -149,7 +149,7 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   <div class="foot__big" aria-hidden="true" data-cms="settings.shop_name">MARBO98</div>
   <div class="foot__cols">
     <div><b>หมวดหมู่</b><ul id="footCats"></ul></div>
-    <div><b>ช่วยเหลือ</b><ul><li>สั่งซื้อและชำระผ่าน LINE</li><li>ส่งฟรีเมื่อครบยอดที่กำหนด</li><li>เปลี่ยนสินค้าได้ภายใน 7 วัน</li></ul></div>
+    <div><b>ช่วยเหลือ</b><ul><li><button type="button" class="foot__install" data-track-open>ติดตามคำสั่งซื้อ →</button></li><li>สั่งซื้อและชำระผ่าน LINE</li><li>ส่งฟรีเมื่อครบยอดที่กำหนด</li><li>เปลี่ยนสินค้าได้ภายใน 7 วัน</li></ul></div>
     <div><b>ติดต่อ</b><ul><li>LINE OA: <span id="lineIdText">[ยังไม่ตั้งค่า]</span></li>
       <li><button type="button" id="installFoot" class="foot__install">ติดตั้งเป็นแอปบนมือถือ →</button></li></ul></div>
   </div>
@@ -203,6 +203,18 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
         <label for="fPhone">เบอร์โทรศัพท์</label><input id="fPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="08x-xxx-xxxx" required>
         <label for="fAddr">ที่อยู่จัดส่ง</label><textarea id="fAddr" name="addr" rows="3" autocomplete="street-address" required></textarea>
         <label for="fNote">หมายเหตุถึงร้าน (ไม่บังคับ)</label><input id="fNote" name="note">
+        <section class="pay" id="paySec" aria-labelledby="payTitle">
+          <div class="pay__head"><b id="payTitle">ชำระเงิน</b><span class="pay__amt" id="payTotal">฿0</span></div>
+          <div class="pay__body">
+            <div class="pay__qr" id="payQr" hidden><div id="payQrSvg" aria-label="QR พร้อมเพย์"></div><small>สแกนด้วยแอปธนาคาร · ยอดถูกใส่ให้แล้ว</small></div>
+            <div class="pay__info" id="payInfo"></div>
+          </div>
+          <label class="slip" id="slipBox"><input type="file" id="fSlip" accept="image/*">
+            <span class="slip__empty" id="slipEmpty"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg><b>แนบสลิปการโอน</b><small>แตะเพื่อเลือกรูปจากเครื่อง</small></span>
+            <span class="slip__done" id="slipDone" hidden><img id="slipPrev" alt="สลิปที่แนบ"><span><b>แนบสลิปแล้ว</b><small>แตะเพื่อเปลี่ยนรูป</small></span></span>
+          </label>
+        </section>
+        <p class="linediag" id="lineDiag" hidden></p>
         <p class="form__err" id="formErr" role="alert" hidden></p>
       </form>
     </div>
@@ -242,6 +254,29 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   </div>
 </div>
 
+<!-- ติดตามคำสั่งซื้อ -->
+<div class="modal" id="trackModal" aria-hidden="true">
+  <button class="modal__scrim" data-track-close aria-label="ปิด"></button>
+  <div class="modal__box track" role="dialog" aria-modal="true" aria-labelledby="trackTitle">
+    <div class="modal__col">
+      <p class="eyebrow">ORDER STATUS</p>
+      <h2 id="trackTitle">ติดตามคำสั่งซื้อ</h2>
+      <form id="trackForm" class="form track__form" novalidate>
+        <label for="tNo">เลขที่คำสั่งซื้อ</label><input id="tNo" placeholder="FZ261120-XXXX" autocomplete="off" autocapitalize="characters" required>
+        <label for="tPhone">เบอร์โทรที่ใช้สั่ง</label><input id="tPhone" type="tel" inputmode="tel" placeholder="08x-xxx-xxxx" required>
+        <p class="form__err" id="trackErr" role="alert" hidden></p>
+        <button class="btn btn--ink btn--block" type="submit">ดูสถานะ</button>
+      </form>
+      <div id="trackMine" class="track__mine"></div>
+      <div id="trackResult" hidden></div>
+      <button class="btn btn--ghost-dark btn--block" data-track-close>ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ส่งคำสั่งซื้อแล้ว (ระหว่างปิดหน้าต่าง / เปิด LINE) -->
+<div class="done" id="doneScreen" hidden><div class="done__box"><span class="done__ico">✓</span><b id="doneTitle">ส่งคำสั่งซื้อแล้ว</b><small id="doneSub">กำลังกลับไปที่แชท LINE…</small><span class="done__no" id="doneNo"></span></div></div>
+
 <!-- วิธีติดตั้งบน iPhone -->
 <div class="modal" id="iosModal" aria-hidden="true">
   <button class="modal__scrim" data-close-ios aria-label="ปิด"></button>
@@ -266,6 +301,6 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   <button type="button" data-tab="cart" id="tabCart"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>ตะกร้า</span><b class="tabbar__count" id="tabCount">0</b></button>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="js/main.js?v=20261120.1"></script>
+<script type="module" src="js/main.js?v=20261120.2"></script>
 </body>
 </html>
