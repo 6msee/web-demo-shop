@@ -7,6 +7,28 @@ let map, base, sat, pin = null, onChange = () => {};
 export const mapsLink = (p) => `https://www.google.com/maps/search/?api=1&query=${p.lat.toFixed(6)},${p.lng.toFixed(6)}`;
 export const getPin = () => pin;
 
+// แปลงพิกัดเป็นที่อยู่ (OpenStreetMap Nominatim · ภาษาไทย)
+const pick = (a, ...k) => k.map((x) => a[x]).find(Boolean);
+export async function reverseAddress(p) {
+  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 9000);
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p.lat}&lon=${p.lng}&zoom=18&addressdetails=1&accept-language=th`, { signal: ctl.signal });
+    if (!r.ok) return '';
+    const j = await r.json(); const a = j.address || {};
+    const parts = [
+      a.house_number && `เลขที่ ${a.house_number}`,
+      pick(a, 'building', 'amenity', 'shop', 'office'),
+      pick(a, 'road', 'pedestrian'),
+      pick(a, 'hamlet', 'village', 'neighbourhood', 'residential', 'quarter'),
+      pick(a, 'suburb', 'subdistrict', 'town'),
+      pick(a, 'city_district', 'district', 'county', 'municipality', 'city'),
+      pick(a, 'state', 'province'),
+      a.postcode
+    ].filter(Boolean).filter((x, i, arr) => arr.indexOf(x) === i);
+    return (parts.length >= 2 ? parts.join(' ') : (j.display_name || '').split(', ').filter((x) => x !== 'ประเทศไทย').join(' ')).slice(0, 400);
+  } catch { return ''; } finally { clearTimeout(t); }
+}
+
 function loadLeaflet() {
   if (window.L) return Promise.resolve(window.L);
   return new Promise((ok, bad) => {
@@ -73,10 +95,35 @@ function confirmPin() {
   if (!map) return;
   if (map.getZoom() < 15) { msg('ซูมเข้าให้เห็นบ้านหรืออาคารชัด ๆ ก่อนยืนยันหมุด', true); map.setZoom(Math.max(map.getZoom() + 2, 15)); return; }
   const c = map.getCenter(); pin = { lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6) };
-  render(); close();
+  render(); close(); fillAddress(pin);
 }
 
-export function clearPin() { pin = null; render(); }
+let autoAddr = '';
+async function fillAddress(p) {
+  const ta = document.getElementById('fAddr'); if (!ta) return;
+  const note = $('#pinAddrMsg');
+  const show = (t) => { if (note) { note.textContent = t; note.hidden = !t; } };
+  show('กำลังดึงที่อยู่จากหมุด…');
+  const addr = await reverseAddress(p);
+  if (pin !== p) return; // ผู้ใช้เปลี่ยนหมุดระหว่างรอ
+  if (!addr) { show('ดึงที่อยู่จากหมุดไม่ได้ · พิมพ์ที่อยู่เองได้เลย'); return; }
+  const cur = ta.value.trim();
+  if (!cur || cur === autoAddr) {
+    ta.value = autoAddr = addr; ta.classList.remove('bad');
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    show('ใส่ที่อยู่ตามหมุดให้แล้ว · เติมบ้านเลขที่/ห้อง หรือแก้ไขได้');
+  } else {
+    if (note) {
+      note.hidden = false; note.textContent = '';
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'pinbox__use';
+      b.textContent = `ใช้ที่อยู่ตามหมุด: ${addr}`;
+      b.onclick = () => { ta.value = autoAddr = addr; ta.dispatchEvent(new Event('input', { bubbles: true })); show('ใส่ที่อยู่ตามหมุดให้แล้ว · แก้ไขเพิ่มเติมได้'); };
+      note.appendChild(b);
+    }
+  }
+}
+
+export function clearPin() { pin = null; render(); const n = $('#pinAddrMsg'); if (n) { n.hidden = true; n.textContent = ''; } }
 
 export function initPin(cb) {
   if (!$('#pinBox')) return;

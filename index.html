@@ -24,8 +24,8 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261120.6">
-<script src="vendor/supabase.js?v=20261120.6"></script>
+<link rel="stylesheet" href="css/style.css?v=20261120.7">
+<script src="vendor/supabase.js?v=20261120.7"></script>
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/addons/" } }
 </script>
@@ -208,6 +208,7 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
           <div class="pinbox__set" id="pinSet" hidden><span class="pinbox__ico on" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span>
             <span><b>ปักหมุดแล้ว</b><small><span id="pinCoord"></span> · <a id="pinGmaps" target="_blank" rel="noopener">ดูใน Google Maps ↗</a></small></span>
             <span class="pinbox__act"><button type="button" id="pinEdit">แก้หมุด</button><button type="button" id="pinClear" aria-label="ลบหมุด">ลบ</button></span></div>
+          <p class="pinbox__addr" id="pinAddrMsg" hidden></p>
         </div>
         <label for="fMark">รายละเอียดสถานที่ / จุดสังเกต (ไม่บังคับ)</label><input id="fMark" name="landmark" maxlength="300" placeholder="เช่น หอพัก A ห้อง 305 · บ้านประตูสีเขียว ตรงข้ามเซเว่น">
         <label for="fNote">หมายเหตุถึงร้าน (ไม่บังคับ)</label><input id="fNote" name="note">
@@ -316,6 +317,6 @@ document.querySelector('meta[name=theme-color]').content=t==='light'?'#FFFFFF':'
   <button type="button" data-tab="cart" id="tabCart"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>ตะกร้า</span><b class="tabbar__count" id="tabCount">0</b></button>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script type="module" src="js/main.js?v=20261120.6"></script>
+<script type="module" src="js/main.js?v=20261120.7"></script>
 </body>
 </html>

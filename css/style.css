@@ -1150,3 +1150,5 @@ html.pin-lock,html.pin-lock body{overflow:hidden}
 .pinsheet__msg{margin:0;font-size:12.5px;color:#BDB9B0;text-align:center}
 .pinsheet__msg.bad{color:#F0A27A}
 .pinsheet .leaflet-control-attribution{font-size:9px}
+.pinbox__addr{margin:8px 2px 0;font-size:12px;color:var(--gold)}
+.pinbox__use{display:block;width:100%;margin-top:2px;padding:10px 12px;border-radius:10px;border:1px solid rgba(214,180,108,.5);background:rgba(214,180,108,.08);color:var(--ink);font:inherit;font-size:12.5px;text-align:left;cursor:pointer;line-height:1.45}

@@ -1,10 +1,10 @@
 // ร้านค้า: หมวดหมู่ แนะนำ ขายดี มาใหม่ สินค้าทั้งหมด หน้ารายละเอียดสินค้า ตะกร้า และ checkout ผ่าน LINE
-import { LINE_OA_ID_FALLBACK } from './config.js?v=20261120.6';
-import { placeOrder, uploadSlip, trackOrder } from './api.js?v=20261120.6';
-import { promptpayPayload, renderQR, shrinkSlip } from './pay.js?v=20261120.6';
-import { LINE, inLineApp, initLine, sendOrderToChat, closeLine } from './line.js?v=20261120.6';
-import { initPin, getPin, clearPin, mapsLink } from './pin.js?v=20261120.6';
-import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261120.6';
+import { LINE_OA_ID_FALLBACK } from './config.js?v=20261120.7';
+import { placeOrder, uploadSlip, trackOrder } from './api.js?v=20261120.7';
+import { promptpayPayload, renderQR, shrinkSlip } from './pay.js?v=20261120.7';
+import { LINE, inLineApp, initLine, sendOrderToChat, closeLine } from './line.js?v=20261120.7';
+import { initPin, getPin, clearPin, mapsLink } from './pin.js?v=20261120.7';
+import { bindTilt, toast, flyToCart, initMagnetic } from './fx.js?v=20261120.7';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];

@@ -1,6 +1,6 @@
 // ชั้นเชื่อมต่อ Supabase ที่หน้าร้านใช้ (อ่านแค็ตตาล็อก + อันดับขายดี + ส่งคำสั่งซื้อ)
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=20261120.6';
-import { FALLBACK } from './data.js?v=20261120.6';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=20261120.7';
+import { FALLBACK } from './data.js?v=20261120.7';
 
 let client = null;
 export function sb() {
